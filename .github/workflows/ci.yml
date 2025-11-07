@@ -61,12 +61,23 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push Docker image
+      - name: Build and push backend Docker image
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ./typrr-backend
+          file: ./typrr-backend/Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/typrr:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/typrr-backend:latest
 
-      - name: Verify image
-        run: docker image ls ${{ secrets.DOCKERHUB_USERNAME }}/typrr
+      - name: Build and push frontend Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./typrr-frontend
+          file: ./typrr-frontend/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/typrr-frontend:latest
+
+      - name: Verify images
+        run: |
+          docker image ls ${{ secrets.DOCKERHUB_USERNAME }}/typrr-backend
+          docker image ls ${{ secrets.DOCKERHUB_USERNAME }}/typrr-frontend
