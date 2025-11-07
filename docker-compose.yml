@@ -1,0 +1,35 @@
+#version: '3.8'
+
+services:
+  backend:
+    build: ./typrr-backend
+    container_name: typrr-backend
+    ports:
+      - "3003:3003"
+    environment:
+      - PORT=3003
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
+      - NODE_ENV=production
+    networks:
+      - typrr-network
+    volumes:
+      - backend-data:/app/prisma
+  
+
+  frontend:
+    build: ./typrr-frontend
+    container_name: typrr-frontend
+    ports:
+      - "5274:80"
+    depends_on:
+      - backend
+    networks:
+      - typrr-network
+
+networks:
+  typrr-network:
+    driver: bridge
+
+volumes:
+  backend-data:
+  

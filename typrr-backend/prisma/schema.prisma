@@ -1,0 +1,67 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  username      String   @unique
+  passwordHash  String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  attempts      Attempt[]
+  achievements  UserAchievement[]
+}
+
+model Attempt {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  snippetId   String
+  language    String
+  difficulty  String
+  category    String
+  
+  wpm         Float
+  accuracy    Float
+  errors      Int
+  timeMs      Int
+  mode        String
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([userId])
+  @@index([language])
+  @@index([difficulty])
+}
+
+model Achievement {
+  id          String   @id
+  title       String
+  description String
+  icon        String
+  category    String
+  requirement Int
+  
+  users       UserAchievement[]
+}
+
+model UserAchievement {
+  id            String   @id @default(uuid())
+  userId        String
+  achievementId String
+  unlockedAt    DateTime @default(now())
+  
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, achievementId])
+  @@index([userId])
+}
