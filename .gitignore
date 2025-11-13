@@ -32,3 +32,10 @@ prisma/migrations/*.db-journal
 
 # OS-specific
 Thumbs.db
+
+# Terraform
+**/.terraform/
+**/.terraform.lock.hcl
+**/terraform.tfstate
+**/terraform.tfstate.backup
+**/*.tfvars
