@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import axios from 'axios';
 
-const API_URL = 'http://localhost:3003/api';
+const API_URL = '/api';
 
 interface User {
   id: string;

@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/auth.routes';
 import attemptsRoutes from './routes/attempts.routes';
 import leaderboardRoutes from './routes/leaderboard.routes';
+import adminRoutes from './routes/admin.routes';
 
 dotenv.config();
 
@@ -44,7 +45,7 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   console.error(err.stack);
   res.status(500).json({ error: 'Something went wrong!' });
 });
-
+app.use('/api/admin', adminRoutes);
 // ============================
 // Server start
 // ============================
