@@ -4,7 +4,6 @@ import { saveEntry } from "./stats";
 import { getNewlyUnlockedAchievements, type Achievement } from "./achievements";
 import { ToastManager } from "./Toast";
 import Dashboard from "./Dashboard";
-import AdminDashboard from "./AdminDashboard";
 import { useAuth } from './AuthContext';
 import { apiClient } from './api';
 import AuthModal from './AuthModal';
@@ -146,7 +145,6 @@ export default function TyprrLikeApp() {
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty | null>(null);
   const [practiceIndex, setPracticeIndex] = useState(0);
   const [showDashboard, setShowDashboard] = useState(false);
-  const [showAdmin, setShowAdmin] = useState(false);
   const [achievementToasts, setAchievementToasts] = useState<Achievement[]>([]);
   
   const { day, attemptsLeft, bestWpm, recordAttempt } = useDailyState();
@@ -358,20 +356,16 @@ export default function TyprrLikeApp() {
           <div className="flex gap-2 flex-wrap items-center">
             <button
               className={`px-3 py-1.5 rounded-full text-sm border ${mode === "daily" ? "bg-zinc-900 text-white dark:bg-white dark:text-black" : "border-zinc-300 dark:border-zinc-700"}`}
-              onClick={() => { setMode("daily"); setShowDashboard(false); setShowAdmin(false); }}
+              onClick={() => { setMode("daily"); setShowDashboard(false); }}
             >Daily</button>
             <button
               className={`px-3 py-1.5 rounded-full text-sm border ${mode === "practice" ? "bg-zinc-900 text-white dark:bg-white dark:text-black" : "border-zinc-300 dark:border-zinc-700"}`}
-              onClick={() => { setMode("practice"); setShowDashboard(false); setShowAdmin(false); }}
+              onClick={() => { setMode("practice"); setShowDashboard(false); }}
             >Practice</button>
             <button
               className={`px-3 py-1.5 rounded-full text-sm border ${showDashboard ? "bg-indigo-600 text-white" : "border-zinc-300 dark:border-zinc-700"}`}
-              onClick={() => { setShowDashboard(!showDashboard); setShowAdmin(false); }}
+              onClick={() => setShowDashboard(!showDashboard)}
             >📊 Stats</button>
-            <button
-              className={`px-3 py-1.5 rounded-full text-sm border ${showAdmin ? "bg-purple-600 text-white" : "border-zinc-300 dark:border-zinc-700"}`}
-              onClick={() => { setShowAdmin(!showAdmin); setShowDashboard(false); }}
-            >🔧 Admin</button>
             
             {/* Login/Logout button */}
             {isAuthenticated ? (
@@ -407,9 +401,7 @@ export default function TyprrLikeApp() {
           )}
         </p>
 
-        {showAdmin ? (
-          <AdminDashboard />
-        ) : showDashboard ? (
+        {showDashboard ? (
           <Dashboard />
         ) : (
           <>
