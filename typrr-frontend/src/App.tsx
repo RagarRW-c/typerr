@@ -20,6 +20,8 @@ import AuthModal from './AuthModal';
 import ProfilePage from './ProfilePage';
 import confetti from 'canvas-confetti';
 import { soundManager } from './soundEffects';
+import { calculateXP, addXP, getUserXP, getCurrentLevel } from './xpSystem';
+import { XPNotification, LevelUpNotification } from './XPNotification';
 
 // --- Utilities ---
 
@@ -138,13 +140,26 @@ function Stats({ wpm, accuracy, errors, timeMs }: { wpm: number; accuracy: numbe
 }
 
 function ThemeToggle() {
+  const [isDark, setIsDark] = useState(() => {
+    const saved = localStorage.getItem('theme');
+    // Dark mode is default
+    return saved === 'dark' || !saved;
+  });
+
+  const toggle = () => {
+    const newTheme = isDark ? 'light' : 'dark';
+    document.documentElement.classList.toggle('dark');
+    localStorage.setItem('theme', newTheme);
+    setIsDark(!isDark);
+  };
+
   return (
     <Tooltip content="Toggle dark/light mode">
       <button
         className="px-3 py-1.5 text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 hover-lift"
-        onClick={() => document.documentElement.classList.toggle("dark")}
+        onClick={toggle}
       >
-        🌓
+        {isDark ? '☀️' : '🌙'}
       </button>
     </Tooltip>
   );
@@ -185,6 +200,11 @@ export default function TyprrLikeApp() {
   const [showAdmin, setShowAdmin] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [achievementToasts, setAchievementToasts] = useState<Achievement[]>([]);
+  
+  // XP System State
+  const [xpNotification, setXpNotification] = useState<{ xp: number } | null>(null);
+  const [levelUpNotification, setLevelUpNotification] = useState<{ level: any } | null>(null);
+  const [userXP, setUserXP] = useState(getUserXP());
   
   const { day, attemptsLeft, bestWpm, recordAttempt } = useDailyState();
   const dailyIndex = useMemo(() => hashToIndex(day, SNIPPETS.length), [day]);
@@ -276,6 +296,26 @@ export default function TyprrLikeApp() {
           showToast('Failed to save results', 'error');
         });
       }
+      
+      // Calculate and add XP
+      const earnedXP = calculateXP(wpm, accuracy, errors, snippet.difficulty);
+      const xpResult = addXP(earnedXP);
+      
+      // Show XP notification
+      setXpNotification({ xp: earnedXP });
+      setTimeout(() => setXpNotification(null), 3000);
+      
+      // Check for level up
+      if (xpResult.leveledUp && xpResult.newLevel) {
+        setTimeout(() => {
+          setLevelUpNotification({ level: xpResult.newLevel });
+          showToast(`🎉 Level Up! You're now ${xpResult.newLevel.name}!`, 'success', 5000);
+          setTimeout(() => setLevelUpNotification(null), 5000);
+        }, 3500);
+      }
+      
+      // Update user XP display
+      setUserXP(getUserXP());
       
       if (mode === "daily") recordAttempt(wpm);
       
@@ -441,6 +481,32 @@ export default function TyprrLikeApp() {
               typrr-like <span className="text-zinc-500">demo</span>
             </h1>
             <div className="flex gap-2 flex-wrap items-center">
+              {/* XP Display - tylko dla zalogowanych */}
+              {isAuthenticated && (
+                <div className="glass-card px-4 py-2 rounded-xl flex items-center gap-3 animate-fade-in">
+                  <div className="text-center">
+                    <div className="text-2xl">{getCurrentLevel(userXP.totalXP).icon}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-zinc-500">Level {userXP.level}</div>
+                    <div className="font-bold text-sm">{getCurrentLevel(userXP.totalXP).name}</div>
+                    <div className="w-24 h-1 bg-zinc-200 dark:bg-zinc-700 rounded-full mt-1 overflow-hidden">
+                      <div 
+                        className="h-full bg-gradient-to-r from-yellow-400 to-orange-500 transition-all duration-300"
+                        style={{ 
+                          width: `${userXP.xpToNextLevel > 0 
+                            ? ((userXP.currentLevelXP / (userXP.currentLevelXP + userXP.xpToNextLevel)) * 100) 
+                            : 100}%` 
+                        }}
+                      />
+                    </div>
+                    <div className="text-xs text-zinc-500 mt-0.5">
+                      {userXP.xpToNextLevel > 0 ? `${userXP.xpToNextLevel} XP to next` : 'Max Level!'}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <Tooltip content="Daily challenges">
                 <button
                   className={`px-3 py-1.5 rounded-full text-sm border hover-lift ${mode === "daily" ? "bg-zinc-900 text-white dark:bg-white dark:text-black" : "border-zinc-300 dark:border-zinc-700"}`}
@@ -693,6 +759,22 @@ export default function TyprrLikeApp() {
       />
       
       <ToastContainer />
+      
+      {/* XP Notifications */}
+      {xpNotification && (
+        <XPNotification 
+          xpEarned={xpNotification.xp}
+          onDismiss={() => setXpNotification(null)}
+        />
+      )}
+      
+      {/* Level Up Notification */}
+      {levelUpNotification && (
+        <LevelUpNotification
+          newLevel={levelUpNotification.level}
+          onDismiss={() => setLevelUpNotification(null)}
+        />
+      )}
     </div>
   );
 }
