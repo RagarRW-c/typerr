@@ -50,4 +50,13 @@ export const apiClient = {
 
   getLanguageLeaderboard: (language: string, params?: { limit?: number }) =>
     api.get(`/leaderboard/language/${language}`, { params }),
+  updateProfile: async (data: { username?: string; email?: string }) => {
+    const response = await api.put('/users/me', data);
+    return response.data;
+  },
+
+  changePassword: async (data: { currentPassword: string; newPassword: string }) => {
+    const response = await api.put('/users/me/password', data);
+    return response.data;
+  },
 };

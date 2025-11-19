@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from './AuthContext';
-import PasswordResetRequest from './PasswordResetRequest';
 
 export default function AuthModal({ onClose }: { onClose: () => void }) {
   const [mode, setMode] = useState<'login' | 'register'>('login');
-  const [showPasswordReset, setShowPasswordReset] = useState(false);
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -37,28 +35,9 @@ export default function AuthModal({ onClose }: { onClose: () => void }) {
     }
   };
 
-  // Show Password Reset Screen
-  if (showPasswordReset) {
-    return (
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
-        <div className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-          <PasswordResetRequest 
-            onBack={() => {
-              setShowPasswordReset(false);
-            }} 
-          />
-        </div>
-      </div>
-    );
-  }
-
-  // Regular Login/Register Modal
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div 
-        className="bg-white dark:bg-zinc-900 rounded-2xl p-6 max-w-md w-full border border-zinc-200 dark:border-zinc-800 animate-scale-in"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 max-w-md w-full border border-zinc-200 dark:border-zinc-800">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-semibold">
             {mode === 'login' ? 'Login' : 'Register'}
@@ -78,7 +57,7 @@ export default function AuthModal({ onClose }: { onClose: () => void }) {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 focus:ring-2 focus:ring-indigo-500 outline-none"
+              className="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800"
               required
             />
           </div>
@@ -90,7 +69,7 @@ export default function AuthModal({ onClose }: { onClose: () => void }) {
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 focus:ring-2 focus:ring-indigo-500 outline-none"
+                className="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800"
                 required
               />
             </div>
@@ -102,7 +81,7 @@ export default function AuthModal({ onClose }: { onClose: () => void }) {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 focus:ring-2 focus:ring-indigo-500 outline-none"
+              className="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800"
               required
               minLength={6}
             />
@@ -110,19 +89,6 @@ export default function AuthModal({ onClose }: { onClose: () => void }) {
               <p className="text-xs text-zinc-500 mt-1">At least 6 characters</p>
             )}
           </div>
-
-          {/* Forgot Password Link - tylko dla login */}
-          {mode === 'login' && (
-            <div className="text-right">
-              <button
-                type="button"
-                onClick={() => setShowPasswordReset(true)}
-                className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline"
-              >
-                Forgot password?
-              </button>
-            </div>
-          )}
 
           {error && (
             <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 text-sm">
@@ -133,7 +99,7 @@ export default function AuthModal({ onClose }: { onClose: () => void }) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 hover-lift"
+            className="w-full px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
           >
             {loading ? 'Loading...' : mode === 'login' ? 'Login' : 'Register'}
           </button>

@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react';
 
-// ==================== TOAST SYSTEM ==================== //
-
 export type ToastType = 'success' | 'error' | 'info' | 'warning';
 
 export interface Toast {
@@ -62,71 +60,6 @@ export function ToastContainer() {
             <p className="text-sm">{toast.message}</p>
           </div>
         </div>
-      ))}
-    </div>
-  );
-}
-
-// ==================== ACHIEVEMENT TOASTS ==================== //
-
-export interface Achievement {
-  id: string;
-  title: string;
-  description: string;
-  icon: string;
-}
-
-interface AchievementToastProps {
-  achievement: Achievement;
-  onDismiss: () => void;
-}
-
-function AchievementToast({ achievement, onDismiss }: AchievementToastProps) {
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      onDismiss();
-    }, 5000);
-
-    return () => clearTimeout(timer);
-  }, [onDismiss]);
-
-  return (
-    <div className="glass-card p-4 rounded-xl min-w-[320px] border-l-4 border-yellow-500 animate-slide-in-right">
-      <div className="flex items-start gap-3">
-        <span className="text-3xl">{achievement.icon}</span>
-        <div className="flex-1">
-          <h4 className="font-semibold text-sm">🏆 Achievement Unlocked!</h4>
-          <p className="font-bold mt-1">{achievement.title}</p>
-          <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
-            {achievement.description}
-          </p>
-        </div>
-        <button
-          onClick={onDismiss}
-          className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
-        >
-          ×
-        </button>
-      </div>
-    </div>
-  );
-}
-
-export function ToastManager({
-  achievements,
-  onDismiss,
-}: {
-  achievements: Achievement[];
-  onDismiss: (id: string) => void;
-}) {
-  return (
-    <div className="fixed top-4 right-4 z-50 flex flex-col gap-2">
-      {achievements.map((achievement) => (
-        <AchievementToast
-          key={achievement.id}
-          achievement={achievement}
-          onDismiss={() => onDismiss(achievement.id)}
-        />
       ))}
     </div>
   );

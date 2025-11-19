@@ -3,15 +3,27 @@ import { SNIPPETS, getAllLanguages, type Difficulty } from "./snippets";
 import { saveEntry } from "./stats";
 import { getNewlyUnlockedAchievements, type Achievement } from "./achievements";
 import { ToastManager } from "./Toast";
+import { ToastContainer, showToast } from "./Toast";
 import Dashboard from "./Dashboard";
 import AdminDashboard from "./AdminDashboard";
+import SuccessScreen from "./SuccessScreen";
+import ParticleBackground from "./ParticleBackground";
+import TypingParticles, { createTypingParticle } from "./TypingParticles";
+import MilestoneNotification from "./MilestoneNotification";
+import { useMilestones } from "./useMilestones";
+import { Tooltip } from "./Tooltip";
+import { KeyboardShortcutsButton } from "./KeyboardShortcuts";
+import { Footer } from "./Footer";
 import { useAuth } from './AuthContext';
 import { apiClient } from './api';
 import AuthModal from './AuthModal';
+import ProfilePage from './ProfilePage';
+import confetti from 'canvas-confetti';
+import { soundManager } from './soundEffects';
 
 // --- Utilities ---
 
-const DAY_KEY = () => new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+const DAY_KEY = () => new Date().toISOString().slice(0, 10);
 const STORAGE_PREFIX = "typrr_like";
 const MAX_DAILY_ATTEMPTS = 3;
 
@@ -105,19 +117,19 @@ function useBlink(interval = 600) {
 function Stats({ wpm, accuracy, errors, timeMs }: { wpm: number; accuracy: number; errors: number; timeMs: number }) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm mt-4">
-      <div className="p-3 rounded-2xl bg-gray-100 dark:bg-zinc-800">
+      <div className="p-3 rounded-2xl glass-card hover-lift">
         <div className="text-zinc-500">WPM</div>
         <div className="text-xl font-semibold">{Math.round(wpm)}</div>
       </div>
-      <div className="p-3 rounded-2xl bg-gray-100 dark:bg-zinc-800">
+      <div className="p-3 rounded-2xl glass-card hover-lift">
         <div className="text-zinc-500">Accuracy</div>
         <div className="text-xl font-semibold">{(accuracy*100).toFixed(1)}%</div>
       </div>
-      <div className="p-3 rounded-2xl bg-gray-100 dark:bg-zinc-800">
+      <div className="p-3 rounded-2xl glass-card hover-lift">
         <div className="text-zinc-500">Errors</div>
         <div className="text-xl font-semibold">{errors}</div>
       </div>
-      <div className="p-3 rounded-2xl bg-gray-100 dark:bg-zinc-800">
+      <div className="p-3 rounded-2xl glass-card hover-lift">
         <div className="text-zinc-500">Time</div>
         <div className="text-xl font-semibold">{(timeMs/1000).toFixed(2)}s</div>
       </div>
@@ -125,21 +137,45 @@ function Stats({ wpm, accuracy, errors, timeMs }: { wpm: number; accuracy: numbe
   )
 }
 
-// ---------------------- THEME TOGGLE ---------------------- //
 function ThemeToggle() {
   return (
-    <button
-      className="px-3 py-1.5 text-sm rounded-lg border border-zinc-300 dark:border-zinc-700"
-      onClick={() => document.documentElement.classList.toggle("dark")}
-    >
-      Toggle Theme
-    </button>
+    <Tooltip content="Toggle dark/light mode">
+      <button
+        className="px-3 py-1.5 text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 hover-lift"
+        onClick={() => document.documentElement.classList.toggle("dark")}
+      >
+        🌓
+      </button>
+    </Tooltip>
   );
 }
-// --------------------------------------------------------- //
+
+function SoundToggle() {
+  const [enabled, setEnabled] = useState(soundManager.isEnabled());
+  
+  const toggle = () => {
+    const newState = soundManager.toggle();
+    setEnabled(newState);
+    showToast(newState ? 'Sound enabled' : 'Sound disabled', 'info', 2000);
+  };
+  
+  return (
+    <Tooltip content={enabled ? "Disable sound" : "Enable sound"}>
+      <button
+        className={`px-3 py-1.5 text-sm rounded-lg border hover-lift ${
+          enabled ? 'bg-green-100 dark:bg-green-900 border-green-300 dark:border-green-700' : 'border-zinc-300 dark:border-zinc-700'
+        }`}
+        onClick={toggle}
+      >
+        {enabled ? '🔊' : '🔇'}
+      </button>
+    </Tooltip>
+  );
+}
 
 export default function TyprrLikeApp() {
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showSuccessScreen, setShowSuccessScreen] = useState(false);
   const { user, isAuthenticated, logout } = useAuth();
   const [mode, setMode] = useState<"daily" | "practice">("daily");
   const [selectedLang, setSelectedLang] = useState<string | null>(null);
@@ -147,12 +183,12 @@ export default function TyprrLikeApp() {
   const [practiceIndex, setPracticeIndex] = useState(0);
   const [showDashboard, setShowDashboard] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const [achievementToasts, setAchievementToasts] = useState<Achievement[]>([]);
   
   const { day, attemptsLeft, bestWpm, recordAttempt } = useDailyState();
   const dailyIndex = useMemo(() => hashToIndex(day, SNIPPETS.length), [day]);
   
-  // Filter snippets based on selection
   const availableSnippets = useMemo(() => {
     let filtered = SNIPPETS;
     if (selectedLang) {
@@ -164,13 +200,16 @@ export default function TyprrLikeApp() {
     return filtered;
   }, [selectedLang, selectedDifficulty]);
   
-  // Reset practice index when filters change
   useEffect(() => {
     if (mode === "practice") {
       setPracticeIndex(0);
       resetRun();
     }
-  }, [selectedLang, selectedDifficulty, mode]);
+  }, [selectedLang, selectedDifficulty]);
+
+  useEffect(() => {
+    resetRun();
+  }, [mode]);
   
   const snippet = mode === "daily" 
     ? SNIPPETS[dailyIndex] 
@@ -197,12 +236,16 @@ export default function TyprrLikeApp() {
   const minutes = Math.max(ms / 1000 / 60, 1e-6);
   const wpm = (correctCount / 5) / minutes;
 
+  const { currentMilestone, dismissMilestone } = useMilestones(wpm, started && !finished);
+
   useEffect(() => {
     if (input === target && target.length > 0 && !finished && !savedRef.current) {
       setFinished(true);
       savedRef.current = true;
       
-      // Save to localStorage
+      soundManager.playSuccess();
+      setShowSuccessScreen(true);
+      
       saveEntry({
         date: new Date().toISOString().slice(0, 10),
         language: snippet.lang,
@@ -215,7 +258,6 @@ export default function TyprrLikeApp() {
         mode,
       });
       
-      // Save to backend if authenticated
       if (isAuthenticated) {
         apiClient.saveAttempt({
           snippetId: snippet.id,
@@ -227,23 +269,34 @@ export default function TyprrLikeApp() {
           errors,
           timeMs: ms,
           mode,
-        }).catch(err => console.error('Failed to save to backend:', err));
+        }).then(() => {
+          showToast('Results saved successfully!', 'success');
+        }).catch(err => {
+          console.error('Failed to save to backend:', err);
+          showToast('Failed to save results', 'error');
+        });
       }
       
       if (mode === "daily") recordAttempt(wpm);
       
-      // Check for newly unlocked achievements
       setTimeout(() => {
         const newAchievements = getNewlyUnlockedAchievements();
         if (newAchievements.length > 0) {
           setAchievementToasts(prev => [...prev, ...newAchievements]);
+          showToast(`🏆 ${newAchievements.length} new achievement${newAchievements.length > 1 ? 's' : ''} unlocked!`, 'success');
         }
       }, 500);
     }
   }, [input, target, finished, isAuthenticated, snippet, wpm, accuracy, errors, ms, mode, recordAttempt]);
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
-    if (finished || (mode === "daily" && attemptsLeft <= 0)) return;
+    if (mode === "daily" && attemptsLeft <= 0) {
+      e.preventDefault();
+      showToast('No attempts left today!', 'warning');
+      return;
+    }
+    
+    if (finished) return;
     if (!started) setStarted(true);
 
     if (e.key === "Backspace") {
@@ -283,6 +336,12 @@ export default function TyprrLikeApp() {
         setErrors(prev => prev + 1);
       }
       
+      soundManager.playKeyPress(!hasError);
+      if (divRef.current) {
+        const rect = divRef.current.getBoundingClientRect();
+        createTypingParticle(rect.left + 20, rect.top + 20, !hasError);
+      }
+      
       return;
     }
 
@@ -293,11 +352,18 @@ export default function TyprrLikeApp() {
         const expectedChar = target[currentIndex];
         setTyped((t) => t + 1);
         
-        if (expectedChar === "\t") {
+        const isCorrect = expectedChar === "\t";
+        if (isCorrect) {
           setInput(prev => prev + "\t");
         } else {
           setErrors((e) => e + 1);
           setInput(prev => prev + "\t");
+        }
+        
+        soundManager.playKeyPress(isCorrect);
+        if (divRef.current) {
+          const rect = divRef.current.getBoundingClientRect();
+          createTypingParticle(rect.left + 20, rect.top + 20, isCorrect);
         }
       }
       return;
@@ -309,11 +375,18 @@ export default function TyprrLikeApp() {
         const expectedChar = target[currentIndex];
         setTyped((t) => t + 1);
         
-        if (e.key === expectedChar) {
+        const isCorrect = e.key === expectedChar;
+        if (isCorrect) {
           setInput(prev => prev + e.key);
         } else {
           setErrors((e) => e + 1);
           setInput(prev => prev + e.key);
+        }
+        
+        soundManager.playKeyPress(isCorrect);
+        if (divRef.current) {
+          const rect = divRef.current.getBoundingClientRect();
+          createTypingParticle(rect.left + 20, rect.top + 20, isCorrect);
         }
       }
     }
@@ -326,8 +399,9 @@ export default function TyprrLikeApp() {
     setErrors(0);
     setTyped(0);
     savedRef.current = false;
+    setShowSuccessScreen(false);
     reset();
-    divRef.current?.focus();
+    setTimeout(() => divRef.current?.focus(), 0);
   }
 
   useEffect(() => {
@@ -335,6 +409,7 @@ export default function TyprrLikeApp() {
       if (e.altKey && e.key.toLowerCase() === 'r') {
         e.preventDefault();
         resetRun();
+        showToast('Snippet reset', 'info', 1500);
       }
     }
     
@@ -346,195 +421,278 @@ export default function TyprrLikeApp() {
 
   useEffect(() => {
     divRef.current?.focus();
-  }, []);
+  }, [snippet]);
+
+  const handleShare = () => {
+    const text = `I just typed a snippet at ${Math.round(wpm)} WPM with ${(accuracy*100).toFixed(1)}% accuracy! #typrrlike`;
+    navigator.clipboard.writeText(text);
+    showToast('Result copied to clipboard!', 'success');
+  };
 
   return (
-    <div className="min-h-screen bg-white text-zinc-900 dark:bg-[#0b0b0c] dark:text-zinc-100 transition-colors">
-      <div className="max-w-3xl mx-auto px-4 py-8">
-        <header className="flex items-center justify-between flex-wrap gap-2">
-          <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
-            typrr-like <span className="text-zinc-500">demo</span>
-          </h1>
-          <div className="flex gap-2 flex-wrap items-center">
-            <button
-              className={`px-3 py-1.5 rounded-full text-sm border ${mode === "daily" ? "bg-zinc-900 text-white dark:bg-white dark:text-black" : "border-zinc-300 dark:border-zinc-700"}`}
-              onClick={() => { setMode("daily"); setShowDashboard(false); setShowAdmin(false); }}
-            >Daily</button>
-            <button
-              className={`px-3 py-1.5 rounded-full text-sm border ${mode === "practice" ? "bg-zinc-900 text-white dark:bg-white dark:text-black" : "border-zinc-300 dark:border-zinc-700"}`}
-              onClick={() => { setMode("practice"); setShowDashboard(false); setShowAdmin(false); }}
-            >Practice</button>
-            <button
-              className={`px-3 py-1.5 rounded-full text-sm border ${showDashboard ? "bg-indigo-600 text-white" : "border-zinc-300 dark:border-zinc-700"}`}
-              onClick={() => { setShowDashboard(!showDashboard); setShowAdmin(false); }}
-            >📊 Stats</button>
-            <button
-              className={`px-3 py-1.5 rounded-full text-sm border ${showAdmin ? "bg-purple-600 text-white" : "border-zinc-300 dark:border-zinc-700"}`}
-              onClick={() => { setShowAdmin(!showAdmin); setShowDashboard(false); }}
-            >🔧 Admin</button>
-            
-            {/* Login/Logout button */}
-            {isAuthenticated ? (
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-zinc-600 dark:text-zinc-400">
-                  👤 {user?.username}
-                </span>
+    <div className="min-h-screen bg-white text-zinc-900 dark:bg-[#0b0b0c] dark:text-zinc-100 transition-colors relative flex flex-col">
+      <ParticleBackground />
+      <TypingParticles />
+
+      <div className="flex-1">
+        <div className="max-w-3xl mx-auto px-4 py-8 relative z-20">
+          <header className="flex items-center justify-between flex-wrap gap-2 animate-fade-in">
+            <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
+              typrr-like <span className="text-zinc-500">demo</span>
+            </h1>
+            <div className="flex gap-2 flex-wrap items-center">
+              <Tooltip content="Daily challenges">
                 <button
-                  onClick={logout}
-                  className="px-3 py-1.5 rounded-full text-sm border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                >
-                  Logout
-                </button>
-              </div>
+                  className={`px-3 py-1.5 rounded-full text-sm border hover-lift ${mode === "daily" ? "bg-zinc-900 text-white dark:bg-white dark:text-black" : "border-zinc-300 dark:border-zinc-700"}`}
+                  onClick={() => { setMode("daily"); setShowDashboard(false); setShowAdmin(false); setShowProfile(false); }}
+                >Daily</button>
+              </Tooltip>
+              <Tooltip content="Unlimited practice">
+                <button
+                  className={`px-3 py-1.5 rounded-full text-sm border hover-lift ${mode === "practice" ? "bg-zinc-900 text-white dark:bg-white dark:text-black" : "border-zinc-300 dark:border-zinc-700"}`}
+                  onClick={() => { setMode("practice"); setShowDashboard(false); setShowAdmin(false); setShowProfile(false); }}
+                >Practice</button>
+              </Tooltip>
+              <Tooltip content="View your statistics">
+                <button
+                  className={`px-3 py-1.5 rounded-full text-sm border hover-lift ${showDashboard ? "bg-indigo-600 text-white" : "border-zinc-300 dark:border-zinc-700"}`}
+                  onClick={() => { setShowDashboard(!showDashboard); setShowAdmin(false); setShowProfile(false); }}
+                >📊</button>
+              </Tooltip>
+              
+              {isAuthenticated && (
+                <Tooltip content="View your profile">
+                  <button
+                    className={`px-3 py-1.5 rounded-full text-sm border hover-lift ${showProfile ? "bg-purple-600 text-white" : "border-zinc-300 dark:border-zinc-700"}`}
+                    onClick={() => { setShowProfile(!showProfile); setShowDashboard(false); setShowAdmin(false); }}
+                  >👤 Profile</button>
+                </Tooltip>
+              )}
+              
+              <Tooltip content="Admin panel">
+                <button
+                  className={`px-3 py-1.5 rounded-full text-sm border hover-lift ${showAdmin ? "bg-orange-600 text-white" : "border-zinc-300 dark:border-zinc-700"}`}
+                  onClick={() => { setShowAdmin(!showAdmin); setShowDashboard(false); setShowProfile(false); }}
+                >🔧</button>
+              </Tooltip>
+              
+              {isAuthenticated ? (
+                <Tooltip content="Logout">
+                  <button
+                    onClick={() => {
+                      logout();
+                      setShowProfile(false);
+                      showToast('Logged out successfully', 'success');
+                    }}
+                    className="px-3 py-1.5 rounded-full text-sm border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover-lift"
+                  >
+                    Logout
+                  </button>
+                </Tooltip>
+              ) : (
+                <Tooltip content="Login or create account">
+                  <button
+                    onClick={() => setShowAuthModal(true)}
+                    className="px-3 py-1.5 rounded-full text-sm bg-indigo-600 text-white hover:bg-indigo-700 hover-lift"
+                  >
+                    Login
+                  </button>
+                </Tooltip>
+              )}
+              
+              <SoundToggle />
+              <ThemeToggle />
+              <KeyboardShortcutsButton />
+            </div>
+          </header>
+
+          <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400 animate-fade-in">
+            {mode === "daily" ? (
+              <>Three attempts per day. Today: <span className="font-medium">{day}</span>. Attempts left: <span className="font-medium">{attemptsLeft}</span>{bestWpm != null && <> · Best: <span className="font-medium">{Math.round(bestWpm)} WPM</span></>}.</>
             ) : (
-              <button
-                onClick={() => setShowAuthModal(true)}
-                className="px-3 py-1.5 rounded-full text-sm bg-indigo-600 text-white hover:bg-indigo-700"
-              >
-                Login
-              </button>
+              <>Practice is unlimited. Your score won't affect daily attempts.</>
             )}
-            
-            <ThemeToggle />
-          </div>
-        </header>
+          </p>
 
-        <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
-          {mode === "daily" ? (
-            <>Three attempts per day. Today: <span className="font-medium">{day}</span>. Attempts left: <span className="font-medium">{attemptsLeft}</span>{bestWpm != null && <> · Best: <span className="font-medium">{Math.round(bestWpm)} WPM</span></>}.</>
+          {showAdmin ? (
+            <AdminDashboard />
+          ) : showDashboard ? (
+            <Dashboard />
+          ) : showProfile ? (
+            <ProfilePage />
           ) : (
-            <>Practice is unlimited. Your score won't affect daily attempts.</>
-          )}
-        </p>
-
-        {showAdmin ? (
-          <AdminDashboard />
-        ) : showDashboard ? (
-          <Dashboard />
-        ) : (
-          <>
-            {mode === "practice" && (
-              <div className="mt-4 flex flex-wrap gap-2">
-                <div>
-                  <label className="text-xs text-zinc-500 uppercase tracking-widest">Language:</label>
-                  <select 
-                    value={selectedLang || ""} 
-                    onChange={(e) => setSelectedLang(e.target.value || null)}
-                    className="ml-2 px-3 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm"
-                  >
-                    <option value="">All Languages</option>
-                    {getAllLanguages().map(lang => (
-                      <option key={lang} value={lang}>{lang}</option>
-                    ))}
-                  </select>
+            <>
+              {mode === "practice" && (
+                <div className="mt-4 flex flex-wrap gap-2 animate-slide-in-left">
+                  <div>
+                    <label className="text-xs text-zinc-500 uppercase tracking-widest">Language:</label>
+                    <select 
+                      value={selectedLang || ""} 
+                      onChange={(e) => setSelectedLang(e.target.value || null)}
+                      className="ml-2 px-3 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm"
+                    >
+                      <option value="">All Languages</option>
+                      {getAllLanguages().map(lang => (
+                        <option key={lang} value={lang}>{lang}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="text-xs text-zinc-500 uppercase tracking-widest">Difficulty:</label>
+                    <select 
+                      value={selectedDifficulty || ""} 
+                      onChange={(e) => setSelectedDifficulty((e.target.value || null) as Difficulty | null)}
+                      className="ml-2 px-3 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm"
+                    >
+                      <option value="">All Difficulties</option>
+                      <option value="easy">Easy</option>
+                      <option value="medium">Medium</option>
+                      <option value="hard">Hard</option>
+                    </select>
+                  </div>
+                  
+                  <Tooltip content="Get a random snippet">
+                    <button
+                      onClick={() => {
+                        if (availableSnippets.length > 0) {
+                          let newIndex;
+                          do {
+                            newIndex = Math.floor(Math.random() * availableSnippets.length);
+                          } while (newIndex === (practiceIndex % availableSnippets.length) && availableSnippets.length > 1);
+                          
+                          setPracticeIndex(newIndex);
+                          resetRun();
+                          showToast('Random snippet loaded', 'info', 1500);
+                        }
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-zinc-200 dark:bg-zinc-800 text-sm hover:bg-zinc-300 dark:hover:bg-zinc-700 hover-lift"
+                    >
+                      🎲 Random
+                    </button>
+                  </Tooltip>
                 </div>
-                
-                <div>
-                  <label className="text-xs text-zinc-500 uppercase tracking-widest">Difficulty:</label>
-                  <select 
-                    value={selectedDifficulty || ""} 
-                    onChange={(e) => setSelectedDifficulty((e.target.value || null) as Difficulty | null)}
-                    className="ml-2 px-3 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm"
-                  >
-                    <option value="">All Difficulties</option>
-                    <option value="easy">Easy</option>
-                    <option value="medium">Medium</option>
-                    <option value="hard">Hard</option>
-                  </select>
-                </div>
-                
-                <button
-                  onClick={() => {
-                    if (availableSnippets.length > 0) {
-                      let newIndex;
-                      do {
-                        newIndex = Math.floor(Math.random() * availableSnippets.length);
-                      } while (newIndex === (practiceIndex % availableSnippets.length) && availableSnippets.length > 1);
-                      
-                      setPracticeIndex(newIndex);
-                      resetRun();
-                    }
-                  }}
-                  className="px-3 py-1.5 rounded-lg bg-zinc-200 dark:bg-zinc-800 text-sm hover:bg-zinc-300 dark:hover:bg-zinc-700"
-                >
-                  🎲 Random Snippet
-                </button>
-              </div>
-            )}
-
-            <section className="mt-6">
-              <div className="flex items-center gap-2 text-xs text-zinc-500 flex-wrap">
-                <span className="uppercase tracking-widest">Snippet</span>
-                <span className="px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700">{snippet.lang}</span>
-                <span className="px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700">{snippet.id}</span>
-                <span className={`px-2 py-0.5 rounded-full border ${
-                  snippet.difficulty === 'easy' ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300' :
-                  snippet.difficulty === 'medium' ? 'bg-yellow-50 dark:bg-yellow-950 border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-300' :
-                  'bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300'
-                }`}>
-                  {snippet.difficulty}
-                </span>
-                <span className="px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300">
-                  {snippet.category}
-                </span>
-              </div>
-              {snippet.description && (
-                <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400 italic">
-                  {snippet.description}
-                </p>
               )}
 
-              <div
-                ref={divRef}
-                tabIndex={0}
-                onKeyDown={handleKeyDown}
-                className={`mt-3 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/60 p-4 font-mono text-sm leading-6 overflow-x-auto min-h-[150px] outline-none focus:ring-4 focus:ring-indigo-200 dark:focus:ring-indigo-900 cursor-text`}
-              >
-                <Highlighted target={target} input={input} showCaret={!finished} blink={blink} />
-              </div>
-
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <button onClick={resetRun} className="px-4 py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-40" disabled={dailyLocked}>
-                  Reset (Alt+R)
-                </button>
-                {mode === "daily" && (
-                  <span className="text-xs text-zinc-500">Attempts left today: {attemptsLeft}</span>
+              <section className="mt-6 animate-scale-in">
+                <div className="flex items-center gap-2 text-xs text-zinc-500 flex-wrap">
+                  <span className="uppercase tracking-widest">Snippet</span>
+                  <span className="px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700">{snippet.lang}</span>
+                  <span className="px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700">{snippet.id}</span>
+                  <span className={`px-2 py-0.5 rounded-full border ${
+                    snippet.difficulty === 'easy' ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300' :
+                    snippet.difficulty === 'medium' ? 'bg-yellow-50 dark:bg-yellow-950 border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-300' :
+                    'bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300'
+                  }`}>
+                    {snippet.difficulty}
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300">
+                    {snippet.category}
+                  </span>
+                </div>
+                {snippet.description && (
+                  <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400 italic">
+                    {snippet.description}
+                  </p>
                 )}
-              </div>
 
-              <Stats wpm={wpm} accuracy={accuracy} errors={errors} timeMs={ms} />
+                {dailyLocked && (
+                  <div className="mt-4 p-4 rounded-xl bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800">
+                    <p className="text-orange-900 dark:text-orange-200 font-medium">
+                      ⏰ You've used all your daily attempts! Come back tomorrow or try Practice mode.
+                    </p>
+                  </div>
+                )}
 
-              {finished && (
-                <button
-                  className="mt-4 px-4 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700"
-                  onClick={() => {
-                    const text = `I just typed today's snippet at ${Math.round(wpm)} WPM with ${(accuracy*100).toFixed(1)}% accuracy! #typrrlike`;
-                    navigator.clipboard.writeText(text);
-                    alert("✅ Result copied to clipboard!");
-                  }}
+                {started && !finished && !dailyLocked && (
+                  <div className="mt-3 mb-3 animate-fade-in">
+                    <div className="flex items-center justify-between text-xs text-zinc-500 mb-1">
+                      <span>Progress</span>
+                      <span>{Math.round((input.length / target.length) * 100)}%</span>
+                    </div>
+                    <div className="relative w-full h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-300"
+                        style={{ width: `${Math.min((input.length / target.length) * 100, 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {started && !finished && typed > 0 && !dailyLocked && (
+                  <div className="mb-3 flex items-center justify-center gap-4 animate-fade-in">
+                    <div className="glass-card px-6 py-3 rounded-xl glow-pulse">
+                      <div className="text-xs text-zinc-500">Live WPM</div>
+                      <div className="text-3xl font-bold gradient-text">
+                        {Math.round(wpm)}
+                      </div>
+                    </div>
+                    <div className="glass-card px-6 py-3 rounded-xl">
+                      <div className="text-xs text-zinc-500">Accuracy</div>
+                      <div className="text-2xl font-bold gradient-text">
+                        {(accuracy * 100).toFixed(0)}%
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div
+                  ref={divRef}
+                  tabIndex={0}
+                  onKeyDown={handleKeyDown}
+                  className={`mt-3 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/60 p-4 font-mono text-sm leading-6 overflow-x-auto min-h-[150px] outline-none focus:ring-4 focus:ring-indigo-200 dark:focus:ring-indigo-900 cursor-text ${dailyLocked ? 'opacity-50 pointer-events-none' : ''}`}
                 >
-                  Share Result
-                </button>
-              )}
+                  <Highlighted target={target} input={input} showCaret={!finished && !dailyLocked} blink={blink} />
+                </div>
 
-              <div className="mt-6 text-xs text-zinc-500">
-                <p>Shortcuts: <kbd className="px-2 py-1 rounded bg-zinc-200 dark:bg-zinc-800">Alt</kbd> + <kbd className="px-2 py-1 rounded bg-zinc-200 dark:bg-zinc-800">R</kbd> to reset.</p>
-              </div>
-            </section>
-          </>
-        )}
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <Tooltip content="Reset this snippet (Alt+R)">
+                    <button onClick={resetRun} className="px-4 py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-40 hover-lift" disabled={dailyLocked}>
+                      Reset
+                    </button>
+                  </Tooltip>
+                  {mode === "daily" && (
+                    <span className="text-xs text-zinc-500">Attempts left today: {attemptsLeft}</span>
+                  )}
+                </div>
+
+                <Stats wpm={wpm} accuracy={accuracy} errors={errors} timeMs={ms} />
+              </section>
+            </>
+          )}
+        </div>
       </div>
+
+      <Footer />
       
-      {/* Auth Modal */}
+      {currentMilestone && (
+        <MilestoneNotification 
+          wpm={currentMilestone} 
+          onDismiss={dismissMilestone}
+        />
+      )}
+      
+      {showSuccessScreen && (
+        <SuccessScreen
+          wpm={wpm}
+          accuracy={accuracy}
+          errors={errors}
+          timeMs={ms}
+          onClose={resetRun}
+          onShare={handleShare}
+        />
+      )}
+      
       {showAuthModal && (
         <AuthModal onClose={() => setShowAuthModal(false)} />
       )}
       
-      {/* Achievement Toasts */}
       <ToastManager 
         achievements={achievementToasts}
         onDismiss={(id) => setAchievementToasts(prev => prev.filter(a => a.id !== id))}
       />
+      
+      <ToastContainer />
     </div>
   );
 }
