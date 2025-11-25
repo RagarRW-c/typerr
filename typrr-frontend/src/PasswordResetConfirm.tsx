@@ -7,7 +7,7 @@ interface PasswordResetConfirmProps {
   onSuccess: () => void;
 }
 
-export default function PasswordResetConfirm({ token, onSuccess }: PasswordResetConfirmProps) {
+export default function PasswordResetConfirm({ token: _token, onSuccess }: PasswordResetConfirmProps) {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);

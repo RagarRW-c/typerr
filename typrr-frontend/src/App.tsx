@@ -18,7 +18,6 @@ import { useAuth } from './AuthContext';
 import { apiClient } from './api';
 import AuthModal from './AuthModal';
 import ProfilePage from './ProfilePage';
-import confetti from 'canvas-confetti';
 import { soundManager } from './soundEffects';
 import { calculateXP, addXP, getUserXP, getCurrentLevel } from './xpSystem';
 import { XPNotification, LevelUpNotification } from './XPNotification';
@@ -191,7 +190,7 @@ function SoundToggle() {
 export default function TyprrLikeApp() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showSuccessScreen, setShowSuccessScreen] = useState(false);
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user: _user, isAuthenticated, logout } = useAuth();
   const [mode, setMode] = useState<"daily" | "practice">("daily");
   const [selectedLang, setSelectedLang] = useState<string | null>(null);
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty | null>(null);
@@ -309,7 +308,7 @@ export default function TyprrLikeApp() {
       if (xpResult.leveledUp && xpResult.newLevel) {
         setTimeout(() => {
           setLevelUpNotification({ level: xpResult.newLevel });
-          showToast(`🎉 Level Up! You're now ${xpResult.newLevel.name}!`, 'success', 5000);
+          showToast(`🎉 Level Up! You're now ${xpResult.newLevel!.name}!`, 'success', 5000);
           setTimeout(() => setLevelUpNotification(null), 5000);
         }, 3500);
       }

@@ -33,7 +33,7 @@ export function createTypingParticle(x: number, y: number, isCorrect: boolean) {
 
 export default function TypingParticles() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     const canvas = canvasRef.current;

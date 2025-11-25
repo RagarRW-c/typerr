@@ -14,10 +14,6 @@ export default function MilestoneNotification({ wpm, onDismiss }: MilestoneNotif
     const duration = 1000; // Skrócone z 2000 do 1000ms
     const animationEnd = Date.now() + duration;
 
-    const randomInRange = (min: number, max: number) => {
-      return Math.random() * (max - min) + min;
-    };
-
     const colors = wpm >= 100 ? ['#9333ea', '#c026d3', '#ec4899'] : 
                    wpm >= 75 ? ['#f59e0b', '#f97316', '#ef4444'] :
                    ['#3b82f6', '#8b5cf6', '#06b6d4'];
