@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SNIPPETS, getAllLanguages, type Difficulty } from "./snippets";
 import { saveEntry } from "./stats";
 import { getNewlyUnlockedAchievements, type Achievement } from "./achievements";
@@ -21,6 +21,10 @@ import ProfilePage from './ProfilePage';
 import { soundManager } from './soundEffects';
 import { calculateXP, addXP, getUserXP, getCurrentLevel } from './xpSystem';
 import { XPNotification, LevelUpNotification } from './XPNotification';
+// Streak System imports
+import { updateStreak, getStreakMultiplier } from './streakSystem';
+import { StreakDisplay } from './StreakDisplay';
+import { StreakNotification, StreakRewardNotification } from './StreakNotification';
 
 // --- Utilities ---
 
@@ -141,7 +145,6 @@ function Stats({ wpm, accuracy, errors, timeMs }: { wpm: number; accuracy: numbe
 function ThemeToggle() {
   const [isDark, setIsDark] = useState(() => {
     const saved = localStorage.getItem('theme');
-    // Dark mode is default
     return saved === 'dark' || !saved;
   });
 
@@ -205,6 +208,10 @@ export default function TyprrLikeApp() {
   const [levelUpNotification, setLevelUpNotification] = useState<{ level: any } | null>(null);
   const [userXP, setUserXP] = useState(getUserXP());
   
+  // Streak System State
+  const [streakNotification, setStreakNotification] = useState<{ streak: number; multiplier: number } | null>(null);
+  const [streakRewardNotification, setStreakRewardNotification] = useState<any>(null);
+  
   const { day, attemptsLeft, bestWpm, recordAttempt } = useDailyState();
   const dailyIndex = useMemo(() => hashToIndex(day, SNIPPETS.length), [day]);
   
@@ -218,18 +225,7 @@ export default function TyprrLikeApp() {
     }
     return filtered;
   }, [selectedLang, selectedDifficulty]);
-  
-  useEffect(() => {
-    if (mode === "practice") {
-      setPracticeIndex(0);
-      resetRun();
-    }
-  }, [selectedLang, selectedDifficulty]);
 
-  useEffect(() => {
-    resetRun();
-  }, [mode]);
-  
   const snippet = mode === "daily" 
     ? SNIPPETS[dailyIndex] 
     : availableSnippets[practiceIndex % availableSnippets.length];
@@ -243,6 +239,27 @@ export default function TyprrLikeApp() {
   const { ms, reset } = useTimer(started && !finished);
   const divRef = useRef<HTMLDivElement | null>(null);
   const savedRef = useRef(false);
+
+  // Reset function - defined early to avoid hoisting issues
+  const resetRun = useCallback(() => {
+    setInput("");
+    setStarted(false);
+    setFinished(false);
+    setErrors(0);
+    setTyped(0);
+    savedRef.current = false;
+    setShowSuccessScreen(false);
+    reset();
+    setTimeout(() => divRef.current?.focus(), 0);
+  }, [reset]);
+
+  // Reset on mode/filter change - placed AFTER resetRun definition
+  useEffect(() => {
+    if (mode === "practice") {
+      setPracticeIndex(0);
+      resetRun();
+    }
+  }, [selectedLang, selectedDifficulty, mode, resetRun]);
 
   const target = snippet.text;
   const correctCount = useMemo(() => {
@@ -264,6 +281,30 @@ export default function TyprrLikeApp() {
       
       soundManager.playSuccess();
       setShowSuccessScreen(true);
+      
+      // Update Streak System
+      const streakUpdate = updateStreak();
+      
+      // Show streak notifications
+      if (streakUpdate.isNewDay && streakUpdate.streakIncreased) {
+        const multiplier = getStreakMultiplier(streakUpdate.streakData.currentStreak);
+        setTimeout(() => {
+          setStreakNotification({ 
+            streak: streakUpdate.streakData.currentStreak, 
+            multiplier 
+          });
+          setTimeout(() => setStreakNotification(null), 4000);
+        }, 1000);
+      }
+      
+      // Show streak reward notification
+      if (streakUpdate.newReward) {
+        setTimeout(() => {
+          setStreakRewardNotification(streakUpdate.newReward);
+          showToast(`🎉 Streak Milestone: ${streakUpdate.newReward!.title}!`, 'success', 5000);
+          setTimeout(() => setStreakRewardNotification(null), 5000);
+        }, 5000);
+      }
       
       saveEntry({
         date: new Date().toISOString().slice(0, 10),
@@ -296,13 +337,22 @@ export default function TyprrLikeApp() {
         });
       }
       
-      // Calculate and add XP
-      const earnedXP = calculateXP(wpm, accuracy, errors, snippet.difficulty);
-      const xpResult = addXP(earnedXP);
+      // Calculate and add XP with streak multiplier
+      const baseXP = calculateXP(wpm, accuracy, errors, snippet.difficulty);
+      const streakMultiplier = getStreakMultiplier(streakUpdate.streakData.currentStreak);
+      const bonusXP = streakUpdate.newReward ? streakUpdate.newReward.xpBonus : 0;
+      const totalXP = Math.floor(baseXP * streakMultiplier) + bonusXP;
+      
+      const xpResult = addXP(totalXP);
       
       // Show XP notification
-      setXpNotification({ xp: earnedXP });
+      setXpNotification({ xp: totalXP });
       setTimeout(() => setXpNotification(null), 3000);
+      
+      // Show streak multiplier info if active
+      if (streakMultiplier > 1) {
+        showToast(`🔥 ${streakMultiplier}x XP Bonus from streak!`, 'success', 3000);
+      }
       
       // Check for level up
       if (xpResult.leveledUp && xpResult.newLevel) {
@@ -431,18 +481,6 @@ export default function TyprrLikeApp() {
     }
   }
 
-  function resetRun() {
-    setInput("");
-    setStarted(false);
-    setFinished(false);
-    setErrors(0);
-    setTyped(0);
-    savedRef.current = false;
-    setShowSuccessScreen(false);
-    reset();
-    setTimeout(() => divRef.current?.focus(), 0);
-  }
-
   useEffect(() => {
     function handleGlobalKeyDown(e: KeyboardEvent) {
       if (e.altKey && e.key.toLowerCase() === 'r') {
@@ -454,7 +492,7 @@ export default function TyprrLikeApp() {
     
     document.addEventListener('keydown', handleGlobalKeyDown);
     return () => document.removeEventListener('keydown', handleGlobalKeyDown);
-  }, []);
+  }, [resetRun]);
 
   const dailyLocked = mode === "daily" && attemptsLeft <= 0;
 
@@ -480,6 +518,9 @@ export default function TyprrLikeApp() {
               typrr-like <span className="text-zinc-500">demo</span>
             </h1>
             <div className="flex gap-2 flex-wrap items-center">
+              {/* Streak Display */}
+              <StreakDisplay />
+              
               {/* XP Display - tylko dla zalogowanych */}
               {isAuthenticated && (
                 <div className="glass-card px-4 py-2 rounded-xl flex items-center gap-3 animate-fade-in">
@@ -772,6 +813,23 @@ export default function TyprrLikeApp() {
         <LevelUpNotification
           newLevel={levelUpNotification.level}
           onDismiss={() => setLevelUpNotification(null)}
+        />
+      )}
+      
+      {/* Streak Notifications */}
+      {streakNotification && (
+        <StreakNotification
+          streak={streakNotification.streak}
+          multiplier={streakNotification.multiplier}
+          onDismiss={() => setStreakNotification(null)}
+        />
+      )}
+      
+      {/* Streak Reward Notification */}
+      {streakRewardNotification && (
+        <StreakRewardNotification
+          reward={streakRewardNotification}
+          onDismiss={() => setStreakRewardNotification(null)}
         />
       )}
     </div>

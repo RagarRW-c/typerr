@@ -18,7 +18,6 @@ import { useAuth } from './AuthContext';
 import { apiClient } from './api';
 import AuthModal from './AuthModal';
 import ProfilePage from './ProfilePage';
-import confetti from 'canvas-confetti';
 import { soundManager } from './soundEffects';
 import { calculateXP, addXP, getUserXP, getCurrentLevel } from './xpSystem';
 import { XPNotification, LevelUpNotification } from './XPNotification';
@@ -140,13 +139,26 @@ function Stats({ wpm, accuracy, errors, timeMs }: { wpm: number; accuracy: numbe
 }
 
 function ThemeToggle() {
+  const [isDark, setIsDark] = useState(() => {
+    const saved = localStorage.getItem('theme');
+    // Dark mode is default
+    return saved === 'dark' || !saved;
+  });
+
+  const toggle = () => {
+    const newTheme = isDark ? 'light' : 'dark';
+    document.documentElement.classList.toggle('dark');
+    localStorage.setItem('theme', newTheme);
+    setIsDark(!isDark);
+  };
+
   return (
     <Tooltip content="Toggle dark/light mode">
       <button
         className="px-3 py-1.5 text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 hover-lift"
-        onClick={() => document.documentElement.classList.toggle("dark")}
+        onClick={toggle}
       >
-        🌓
+        {isDark ? '☀️' : '🌙'}
       </button>
     </Tooltip>
   );
@@ -178,7 +190,7 @@ function SoundToggle() {
 export default function TyprrLikeApp() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showSuccessScreen, setShowSuccessScreen] = useState(false);
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user: _user, isAuthenticated, logout } = useAuth();
   const [mode, setMode] = useState<"daily" | "practice">("daily");
   const [selectedLang, setSelectedLang] = useState<string | null>(null);
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty | null>(null);
@@ -296,7 +308,7 @@ export default function TyprrLikeApp() {
       if (xpResult.leveledUp && xpResult.newLevel) {
         setTimeout(() => {
           setLevelUpNotification({ level: xpResult.newLevel });
-          showToast(`🎉 Level Up! You're now ${xpResult.newLevel.name}!`, 'success', 5000);
+          showToast(`🎉 Level Up! You're now ${xpResult.newLevel!.name}!`, 'success', 5000);
           setTimeout(() => setLevelUpNotification(null), 5000);
         }, 3500);
       }
