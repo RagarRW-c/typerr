@@ -25,6 +25,9 @@ import { XPNotification, LevelUpNotification } from './XPNotification';
 import { updateStreak, getStreakMultiplier } from './streakSystem';
 import { StreakDisplay } from './StreakDisplay';
 import { StreakNotification, StreakRewardNotification } from './StreakNotification';
+// Code Themes imports - NOWE!
+import { ThemeSelector } from './ThemeSelector';
+import { getCurrentTheme, type CodeTheme } from './codeThemes';
 
 // --- Utilities ---
 
@@ -211,6 +214,13 @@ export default function TyprrLikeApp() {
   // Streak System State
   const [streakNotification, setStreakNotification] = useState<{ streak: number; multiplier: number } | null>(null);
   const [streakRewardNotification, setStreakRewardNotification] = useState<any>(null);
+  
+  // Code Theme State - NOWE!
+  const [currentTheme, setCurrentTheme] = useState(getCurrentTheme());
+  
+  const handleThemeChange = (theme: CodeTheme) => {
+    setCurrentTheme(theme);
+  };
   
   const { day, attemptsLeft, bestWpm, recordAttempt } = useDailyState();
   const dailyIndex = useMemo(() => hashToIndex(day, SNIPPETS.length), [day]);
@@ -518,6 +528,9 @@ export default function TyprrLikeApp() {
               typrr-like <span className="text-zinc-500">demo</span>
             </h1>
             <div className="flex gap-2 flex-wrap items-center">
+              {/* Theme Selector - NOWY! */}
+              <ThemeSelector onThemeChange={handleThemeChange} />
+              
               {/* Streak Display */}
               <StreakDisplay />
               
@@ -742,13 +755,25 @@ export default function TyprrLikeApp() {
                   </div>
                 )}
 
+                {/* CODE SNIPPET DIV - ZASTOSOWANY THEME! */}
                 <div
                   ref={divRef}
                   tabIndex={0}
                   onKeyDown={handleKeyDown}
-                  className={`mt-3 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/60 p-4 font-mono text-sm leading-6 overflow-x-auto min-h-[150px] outline-none focus:ring-4 focus:ring-indigo-200 dark:focus:ring-indigo-900 cursor-text ${dailyLocked ? 'opacity-50 pointer-events-none' : ''}`}
+                  className={`mt-3 rounded-2xl border p-4 font-mono text-sm leading-6 overflow-x-auto min-h-[150px] outline-none focus:ring-4 cursor-text transition-colors ${dailyLocked ? 'opacity-50 pointer-events-none' : ''}`}
+                  style={{
+                    backgroundColor: currentTheme.colors.background,
+                    color: currentTheme.colors.text,
+                    borderColor: currentTheme.colors.selection,
+                  }}
                 >
-                  <Highlighted target={target} input={input} showCaret={!finished && !dailyLocked} blink={blink} />
+                  <Highlighted 
+                    target={target} 
+                    input={input} 
+                    showCaret={!finished && !dailyLocked} 
+                    blink={blink}
+                    theme={currentTheme}
+                  />
                 </div>
 
                 <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -836,7 +861,7 @@ export default function TyprrLikeApp() {
   );
 }
 
-function Highlighted({ target, input, showCaret, blink }: { target: string; input: string; showCaret: boolean; blink: boolean }) {
+function Highlighted({ target, input, showCaret, blink, theme }: { target: string; input: string; showCaret: boolean; blink: boolean; theme: CodeTheme }) {
   const caretIndex = input.length;
   const chars = [...target];
   return (
@@ -847,11 +872,18 @@ function Highlighted({ target, input, showCaret, blink }: { target: string; inpu
         const wrong = typed != null && typed !== ch;
         const atCaret = showCaret && idx === caretIndex;
         return (
-          <span key={idx} className={
-            correct ? "text-emerald-600" : wrong ? "text-rose-600 bg-rose-50 dark:bg-rose-950/30" : "text-zinc-900 dark:text-zinc-100"
-          }>
+          <span 
+            key={idx} 
+            style={{
+              color: correct ? theme.colors.success : wrong ? theme.colors.error : theme.colors.text,
+              backgroundColor: wrong ? `${theme.colors.error}20` : 'transparent',
+            }}
+          >
             {atCaret && (
-              <span className={`inline-block w-0.5 align-middle h-5 -ml-0.5 mr-0.5 bg-zinc-900 dark:bg-zinc-100 transition-opacity ${caretClass(blink)}`} />
+              <span 
+                className={`inline-block w-0.5 align-middle h-5 -ml-0.5 mr-0.5 transition-opacity ${caretClass(blink)}`}
+                style={{ backgroundColor: theme.colors.cursor }}
+              />
             )}
             {ch}
           </span>
@@ -859,7 +891,10 @@ function Highlighted({ target, input, showCaret, blink }: { target: string; inpu
       })
     }
     {showCaret && caretIndex === chars.length && (
-      <span className={`inline-block w-0.5 align-middle h-5 ml-0.5 bg-zinc-900 dark:bg-zinc-100 transition-opacity ${caretClass(blink)}`} />
+      <span 
+        className={`inline-block w-0.5 align-middle h-5 ml-0.5 transition-opacity ${caretClass(blink)}`}
+        style={{ backgroundColor: theme.colors.cursor }}
+      />
     )}
     </pre>
   );
