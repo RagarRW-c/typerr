@@ -25,9 +25,11 @@ import { XPNotification, LevelUpNotification } from './XPNotification';
 import { updateStreak, getStreakMultiplier } from './streakSystem';
 import { StreakDisplay } from './StreakDisplay';
 import { StreakNotification, StreakRewardNotification } from './StreakNotification';
-// Code Themes imports - NOWE!
+// Code Themes imports
 import { ThemeSelector } from './ThemeSelector';
 import { getCurrentTheme, type CodeTheme } from './codeThemes';
+// Mobile Optimization imports - NOWE!
+import { ResponsiveHeader } from './ResponsiveHeader';
 
 // --- Utilities ---
 
@@ -215,7 +217,7 @@ export default function TyprrLikeApp() {
   const [streakNotification, setStreakNotification] = useState<{ streak: number; multiplier: number } | null>(null);
   const [streakRewardNotification, setStreakRewardNotification] = useState<any>(null);
   
-  // Code Theme State - NOWE!
+  // Code Theme State
   const [currentTheme, setCurrentTheme] = useState(getCurrentTheme());
   
   const handleThemeChange = (theme: CodeTheme) => {
@@ -523,107 +525,70 @@ export default function TyprrLikeApp() {
 
       <div className="flex-1">
         <div className="max-w-3xl mx-auto px-4 py-8 relative z-20">
-          <header className="flex items-center justify-between flex-wrap gap-2 animate-fade-in">
-            <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
-              typrr-like <span className="text-zinc-500">demo</span>
-            </h1>
-            <div className="flex gap-2 flex-wrap items-center">
-              {/* Theme Selector - NOWY! */}
-              <ThemeSelector onThemeChange={handleThemeChange} />
-              
-              {/* Streak Display */}
-              <StreakDisplay />
-              
-              {/* XP Display - tylko dla zalogowanych */}
-              {isAuthenticated && (
-                <div className="glass-card px-4 py-2 rounded-xl flex items-center gap-3 animate-fade-in">
-                  <div className="text-center">
-                    <div className="text-2xl">{getCurrentLevel(userXP.totalXP).icon}</div>
+          {/* RESPONSIVE HEADER - NOWY! */}
+          <ResponsiveHeader
+            mode={mode}
+            onModeChange={(newMode) => {
+              setMode(newMode);
+              setShowDashboard(false);
+              setShowAdmin(false);
+              setShowProfile(false);
+            }}
+            showDashboard={showDashboard}
+            showProfile={showProfile}
+            showAdmin={showAdmin}
+            onDashboardToggle={() => {
+              setShowDashboard(!showDashboard);
+              setShowAdmin(false);
+              setShowProfile(false);
+            }}
+            onProfileToggle={() => {
+              setShowProfile(!showProfile);
+              setShowDashboard(false);
+              setShowAdmin(false);
+            }}
+            onAdminToggle={() => {
+              setShowAdmin(!showAdmin);
+              setShowDashboard(false);
+              setShowProfile(false);
+            }}
+            isAuthenticated={isAuthenticated}
+            onLoginClick={() => setShowAuthModal(true)}
+            onLogoutClick={() => {
+              logout();
+              setShowProfile(false);
+              showToast('Logged out successfully', 'success');
+            }}
+            xpDisplay={isAuthenticated ? (
+              <div className="glass-card px-4 py-2 rounded-xl flex items-center gap-3 animate-fade-in">
+                <div className="text-center">
+                  <div className="text-2xl">{getCurrentLevel(userXP.totalXP).icon}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-zinc-500">Level {userXP.level}</div>
+                  <div className="font-bold text-sm">{getCurrentLevel(userXP.totalXP).name}</div>
+                  <div className="w-24 h-1 bg-zinc-200 dark:bg-zinc-700 rounded-full mt-1 overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-yellow-400 to-orange-500 transition-all duration-300"
+                      style={{ 
+                        width: `${userXP.xpToNextLevel > 0 
+                          ? ((userXP.currentLevelXP / (userXP.currentLevelXP + userXP.xpToNextLevel)) * 100) 
+                          : 100}%` 
+                      }}
+                    />
                   </div>
-                  <div>
-                    <div className="text-xs text-zinc-500">Level {userXP.level}</div>
-                    <div className="font-bold text-sm">{getCurrentLevel(userXP.totalXP).name}</div>
-                    <div className="w-24 h-1 bg-zinc-200 dark:bg-zinc-700 rounded-full mt-1 overflow-hidden">
-                      <div 
-                        className="h-full bg-gradient-to-r from-yellow-400 to-orange-500 transition-all duration-300"
-                        style={{ 
-                          width: `${userXP.xpToNextLevel > 0 
-                            ? ((userXP.currentLevelXP / (userXP.currentLevelXP + userXP.xpToNextLevel)) * 100) 
-                            : 100}%` 
-                        }}
-                      />
-                    </div>
-                    <div className="text-xs text-zinc-500 mt-0.5">
-                      {userXP.xpToNextLevel > 0 ? `${userXP.xpToNextLevel} XP to next` : 'Max Level!'}
-                    </div>
+                  <div className="text-xs text-zinc-500 mt-0.5">
+                    {userXP.xpToNextLevel > 0 ? `${userXP.xpToNextLevel} XP to next` : 'Max Level!'}
                   </div>
                 </div>
-              )}
-
-              <Tooltip content="Daily challenges">
-                <button
-                  className={`px-3 py-1.5 rounded-full text-sm border hover-lift ${mode === "daily" ? "bg-zinc-900 text-white dark:bg-white dark:text-black" : "border-zinc-300 dark:border-zinc-700"}`}
-                  onClick={() => { setMode("daily"); setShowDashboard(false); setShowAdmin(false); setShowProfile(false); }}
-                >Daily</button>
-              </Tooltip>
-              <Tooltip content="Unlimited practice">
-                <button
-                  className={`px-3 py-1.5 rounded-full text-sm border hover-lift ${mode === "practice" ? "bg-zinc-900 text-white dark:bg-white dark:text-black" : "border-zinc-300 dark:border-zinc-700"}`}
-                  onClick={() => { setMode("practice"); setShowDashboard(false); setShowAdmin(false); setShowProfile(false); }}
-                >Practice</button>
-              </Tooltip>
-              <Tooltip content="View your statistics">
-                <button
-                  className={`px-3 py-1.5 rounded-full text-sm border hover-lift ${showDashboard ? "bg-indigo-600 text-white" : "border-zinc-300 dark:border-zinc-700"}`}
-                  onClick={() => { setShowDashboard(!showDashboard); setShowAdmin(false); setShowProfile(false); }}
-                >📊</button>
-              </Tooltip>
-              
-              {isAuthenticated && (
-                <Tooltip content="View your profile">
-                  <button
-                    className={`px-3 py-1.5 rounded-full text-sm border hover-lift ${showProfile ? "bg-purple-600 text-white" : "border-zinc-300 dark:border-zinc-700"}`}
-                    onClick={() => { setShowProfile(!showProfile); setShowDashboard(false); setShowAdmin(false); }}
-                  >👤 Profile</button>
-                </Tooltip>
-              )}
-              
-              <Tooltip content="Admin panel">
-                <button
-                  className={`px-3 py-1.5 rounded-full text-sm border hover-lift ${showAdmin ? "bg-orange-600 text-white" : "border-zinc-300 dark:border-zinc-700"}`}
-                  onClick={() => { setShowAdmin(!showAdmin); setShowDashboard(false); setShowProfile(false); }}
-                >🔧</button>
-              </Tooltip>
-              
-              {isAuthenticated ? (
-                <Tooltip content="Logout">
-                  <button
-                    onClick={() => {
-                      logout();
-                      setShowProfile(false);
-                      showToast('Logged out successfully', 'success');
-                    }}
-                    className="px-3 py-1.5 rounded-full text-sm border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover-lift"
-                  >
-                    Logout
-                  </button>
-                </Tooltip>
-              ) : (
-                <Tooltip content="Login or create account">
-                  <button
-                    onClick={() => setShowAuthModal(true)}
-                    className="px-3 py-1.5 rounded-full text-sm bg-indigo-600 text-white hover:bg-indigo-700 hover-lift"
-                  >
-                    Login
-                  </button>
-                </Tooltip>
-              )}
-              
-              <SoundToggle />
-              <ThemeToggle />
-              <KeyboardShortcutsButton />
-            </div>
-          </header>
+              </div>
+            ) : undefined}
+            streakDisplay={<StreakDisplay />}
+            themeSelector={<ThemeSelector onThemeChange={handleThemeChange} />}
+            soundToggle={<SoundToggle />}
+            themeToggle={<ThemeToggle />}
+            keyboardShortcuts={<KeyboardShortcutsButton />}
+          />
 
           <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400 animate-fade-in">
             {mode === "daily" ? (

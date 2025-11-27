@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import { AuthProvider } from './AuthContext'
 import './index.css'
+import './mobile.css'  // Mobile Optimization CSS - NOWE!
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
