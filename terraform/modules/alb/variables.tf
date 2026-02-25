@@ -17,3 +17,11 @@ variable "alb_security_group_id" {
   description = "Security group ID for ALB"
   type        = string
 }
+
+variable "certificate_arn" {
+  type = string
+}
+
+variable "alb_logs_bucket" {
+  type = string
+}

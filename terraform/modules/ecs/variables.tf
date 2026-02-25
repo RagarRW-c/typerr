@@ -38,26 +38,6 @@ variable "frontend_target_group_arn" {
   type        = string
 }
 
-variable "db_endpoint" {
-  description = "Database endpoint"
-  type        = string
-}
-
-variable "db_name" {
-  description = "Database name"
-  type        = string
-}
-
-variable "db_username" {
-  description = "Database username"
-  type        = string
-}
-
-variable "db_password_secret_arn" {
-  description = "ARN of secret containing DB password"
-  type        = string
-}
-
 variable "backend_cpu" {
   description = "CPU units for backend (1024 = 1 vCPU)"
   type        = number
@@ -92,4 +72,14 @@ variable "frontend_desired_count" {
   description = "Number of frontend tasks"
   type        = number
   default     = 1
+}
+
+variable "jwt_secret_arn" {
+  description = "ARN of JWT secret in Secrets Manager"
+  type        = string
+}
+
+variable "database_url_secret_arn" {
+  description = "ARN of secret containing full DATABASE_URL connection string"
+  type        = string
 }

@@ -72,3 +72,7 @@ output "frontend_service_name" {
   description = "Frontend service name"
   value       = module.ecs.frontend_service_name
 }
+
+output "zone_id" {
+  value = module.dns.zone_id
+}

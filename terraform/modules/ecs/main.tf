@@ -1,7 +1,4 @@
-data "aws_secretsmanager_secret_version" "db_password" {
-  secret_id = var.db_password_secret_arn
-}
-
+#ecs cluster
 resource "aws_ecs_cluster" "main" {
   name = "${var.project_name}-cluster"
 
@@ -15,23 +12,19 @@ resource "aws_ecs_cluster" "main" {
   }
 }
 
+#log groups
+
 resource "aws_cloudwatch_log_group" "backend" {
   name              = "/ecs/${var.project_name}/backend"
   retention_in_days = 7
-
-  tags = {
-    Name = "${var.project_name}-backend-logs"
-  }
 }
 
 resource "aws_cloudwatch_log_group" "frontend" {
   name              = "/ecs/${var.project_name}/frontend"
   retention_in_days = 7
-
-  tags = {
-    Name = "${var.project_name}-frontend-logs"
-  }
 }
+
+#iam roles
 
 resource "aws_iam_role" "ecs_task_execution" {
   name = "${var.project_name}-ecs-task-execution-role"
@@ -46,10 +39,6 @@ resource "aws_iam_role" "ecs_task_execution" {
       }
     }]
   })
-
-  tags = {
-    Name = "${var.project_name}-ecs-task-execution-role"
-  }
 }
 
 resource "aws_iam_role_policy_attachment" "ecs_task_execution" {
@@ -68,7 +57,10 @@ resource "aws_iam_role_policy" "ecs_secrets_access" {
       Action = [
         "secretsmanager:GetSecretValue"
       ]
-      Resource = [var.db_password_secret_arn]
+      Resource = [
+        var.database_url_secret_arn,
+        var.jwt_secret_arn
+      ]
     }]
   })
 }
@@ -86,11 +78,9 @@ resource "aws_iam_role" "ecs_task" {
       }
     }]
   })
-
-  tags = {
-    Name = "${var.project_name}-ecs-task-role"
-  }
 }
+
+#backend task
 
 resource "aws_ecs_task_definition" "backend" {
   family                   = "${var.project_name}-backend"
@@ -99,12 +89,12 @@ resource "aws_ecs_task_definition" "backend" {
   cpu                      = var.backend_cpu
   memory                   = var.backend_memory
   execution_role_arn       = aws_iam_role.ecs_task_execution.arn
-  task_role_arn           = aws_iam_role.ecs_task.arn
+  task_role_arn            = aws_iam_role.ecs_task.arn
 
   container_definitions = jsonencode([{
     name  = "backend"
     image = "${var.backend_image_url}:latest"
-    
+
     portMappings = [{
       containerPort = 3003
       protocol      = "tcp"
@@ -118,14 +108,17 @@ resource "aws_ecs_task_definition" "backend" {
       {
         name  = "NODE_ENV"
         value = "production"
+      }
+    ]
+
+    secrets = [
+      {
+        name      = "DATABASE_URL"
+        valueFrom = var.database_url_secret_arn
       },
       {
-        name  = "DATABASE_URL"
-        value = "postgresql://${var.db_username}:${data.aws_secretsmanager_secret_version.db_password.secret_string}@${var.db_endpoint}:5432/${var.db_name}"
-      },
-      {
-        name  = "JWT_SECRET"
-        value = data.aws_secretsmanager_secret_version.db_password.secret_string
+        name      = "JWT_SECRET"
+        valueFrom = var.jwt_secret_arn
       }
     ]
 
@@ -146,11 +139,9 @@ resource "aws_ecs_task_definition" "backend" {
       startPeriod = 60
     }
   }])
-
-  tags = {
-    Name = "${var.project_name}-backend-task"
-  }
 }
+
+#frontend task
 
 resource "aws_ecs_task_definition" "frontend" {
   family                   = "${var.project_name}-frontend"
@@ -159,12 +150,12 @@ resource "aws_ecs_task_definition" "frontend" {
   cpu                      = var.frontend_cpu
   memory                   = var.frontend_memory
   execution_role_arn       = aws_iam_role.ecs_task_execution.arn
-  task_role_arn           = aws_iam_role.ecs_task.arn
+  task_role_arn            = aws_iam_role.ecs_task.arn
 
   container_definitions = jsonencode([{
     name  = "frontend"
     image = "${var.frontend_image_url}:latest"
-    
+
     portMappings = [{
       containerPort = 80
       protocol      = "tcp"
@@ -179,11 +170,9 @@ resource "aws_ecs_task_definition" "frontend" {
       }
     }
   }])
-
-  tags = {
-    Name = "${var.project_name}-frontend-task"
-  }
 }
+
+#services
 
 resource "aws_ecs_service" "backend" {
   name            = "${var.project_name}-backend-service"
@@ -202,12 +191,6 @@ resource "aws_ecs_service" "backend" {
     target_group_arn = var.backend_target_group_arn
     container_name   = "backend"
     container_port   = 3003
-  }
-
-  depends_on = [var.backend_target_group_arn]
-
-  tags = {
-    Name = "${var.project_name}-backend-service"
   }
 }
 
@@ -229,10 +212,48 @@ resource "aws_ecs_service" "frontend" {
     container_name   = "frontend"
     container_port   = 80
   }
+}
 
-  depends_on = [var.frontend_target_group_arn]
+resource "aws_appautoscaling_target" "backend" {
+  max_capacity       = 3
+  min_capacity       = 1
+  resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.backend.name}"
+  scalable_dimension = "ecs:service:DesiredCount"
+  service_namespace  = "ecs"
+}
 
-  tags = {
-    Name = "${var.project_name}-frontend-service"
+resource "aws_appautoscaling_policy" "backend_cpu" {
+  name               = "${var.project_name}-backend-cpu-scaling"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.backend.resource_id
+  scalable_dimension = aws_appautoscaling_target.backend.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.backend.service_namespace
+
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageCPUUtilization"
+    }
+
+    target_value       = 70
+    scale_in_cooldown  = 60
+    scale_out_cooldown = 60
   }
+}
+
+resource "aws_cloudwatch_metric_alarm" "backend_high_cpu" {
+  alarm_name          = "${var.project_name}-backend-high-cpu"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/ECS"
+  period              = 60
+  statistic           = "Average"
+  threshold           = 80
+
+  dimensions = {
+    ClusterName = aws_ecs_cluster.main.name
+    ServiceName = aws_ecs_service.backend.name
+  }
+
+  alarm_description = "Backend CPU above 80%"
 }

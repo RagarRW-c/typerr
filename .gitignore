@@ -3,6 +3,7 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+dist/
 
 # Build artifacts
 dist/
@@ -32,6 +33,8 @@ prisma/migrations/*.db-journal
 
 # OS-specific
 Thumbs.db
+.DS_Store
+
 
 # Terraform
 **/.terraform/
@@ -39,3 +42,13 @@ Thumbs.db
 **/terraform.tfstate
 **/terraform.tfstate.backup
 **/*.tfvars
+**/.terraform/
+**/*.tfstate
+**/*.tfstate.*
+**/tfplan
+**/*.backup
+terraform.tar
+
+# Archives
+*.tar
+*.zip
