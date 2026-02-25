@@ -1,125 +1,193 @@
-# 🖋️ Typrr Project
+# 🖋️ Typrr
 
-Typrr is a full-stack typing speed and accuracy application built with **React (frontend)**, **Express + Prisma (backend)**, and **SQLite/PostgreSQL** for persistent storage.  
-The project is containerized using **Docker Compose** for consistent multi-service deployment.
+Typrr is a production-ready full-stack typing speed and accuracy
+platform built using a modern cloud-native architecture.
 
----
+The project demonstrates real-world DevOps practices including
+containerization, infrastructure as code, autoscaling, HTTPS
+enforcement, centralized logging, and monitoring.
+
+------------------------------------------------------------------------
+
+## 🌍 Live Application
+
+Production environment:
+
+👉 https://typrr.cloud
+
+Hosted in AWS (eu-central-1 region).
+
+------------------------------------------------------------------------
+
+## 🏗️ Architecture Overview
+
+Production architecture:
+
+Internet\
+↓\
+Route53 (DNS)\
+↓\
+Application Load Balancer (HTTPS)\
+↓\
+ECS Fargate\
+├── Frontend (Nginx + React SPA)\
+└── Backend (Node.js API)\
+↓\
+RDS PostgreSQL
+
+Additional components:
+
+-   AWS ACM (TLS certificate)\
+-   CloudWatch monitoring & alarms\
+-   ECS autoscaling\
+-   ALB access logs stored in S3\
+-   AWS Secrets Manager for credentials
+
+------------------------------------------------------------------------
 
 ## 🚀 Features
 
-- User registration & login (JWT authentication)
-- Typing test with WPM & accuracy tracking
-- Leaderboard system for best results
-- RESTful API with Prisma ORM
-- Frontend served with Vite + React + TypeScript
-- Dockerized backend and frontend for easy deployment
+-   JWT-based authentication\
+-   Typing test with WPM & accuracy tracking\
+-   Leaderboard system\
+-   Persistent storage\
+-   Production-grade AWS deployment\
+-   Autoscaling backend service\
+-   HTTPS enforced (HTTP → 301 redirect)\
+-   Security headers (HSTS, X-Frame-Options, Referrer-Policy)\
+-   Centralized logging and monitoring
 
----
+------------------------------------------------------------------------
 
-## 🏗️ Project Structure
+## 📁 Repository Structure
 
-```
-typrr-project/
-├── typrr-frontend/      # React frontend (Vite)
-├── typrr-backend/       # Express + Prisma backend
-├── docker-compose.yml   # Defines multi-container setup
-└── README.md            # Project documentation
-```
+typrr-project/\
+├── terraform/ \# Infrastructure as Code (AWS)\
+│ ├── modules/\
+│ ├── main.tf\
+│ ├── variables.tf\
+│ └── outputs.tf\
+│\
+├── typrr-backend/ \# Node.js + Express API\
+├── typrr-frontend/ \# React + Vite frontend\
+├── docker-compose.yml \# Local multi-service setup\
+└── README.md
 
----
+------------------------------------------------------------------------
 
-## ⚙️ Installation & Setup (Local Development)
+## 🛠️ Tech Stack
+
+### Frontend
+
+-   React\
+-   TypeScript\
+-   Vite\
+-   Nginx
+
+### Backend
+
+-   Node.js\
+-   Express\
+-   Prisma ORM
+
+### Database
+
+-   SQLite (development)\
+-   PostgreSQL (production)
+
+### DevOps / Cloud
+
+-   AWS ECS Fargate\
+-   Application Load Balancer\
+-   Route53\
+-   AWS ACM\
+-   RDS PostgreSQL\
+-   S3\
+-   CloudWatch\
+-   AWS Secrets Manager\
+-   Terraform\
+-   Docker
+
+------------------------------------------------------------------------
+
+## ⚙️ Local Development
 
 ### 1️⃣ Clone the repository
 
-```bash
-git clone https://github.com/RagarRW-c/typerr.git
-cd typerr
-```
+git clone https://github.com/RagarRW-c/typrr.git\
+cd typrr-project
 
 ### 2️⃣ Backend setup
 
-```bash
-cd typrr-backend
-npm install
-npx prisma migrate deploy
+cd typrr-backend\
+npm install\
+npx prisma migrate dev\
 npm run dev
-```
+
+Backend runs at:\
+http://localhost:3003/api/health
 
 ### 3️⃣ Frontend setup
 
-```bash
-cd typrr-frontend
-npm install
+cd typrr-frontend\
+npm install\
 npm run dev
-```
 
-### 4️⃣ Environment variables
+Frontend runs at:\
+http://localhost:5173
 
-Create `.env` file inside `typrr-backend/` with:
+### 4️⃣ Backend Environment Variables
 
-```
-DATABASE_URL="file:./dev.db"
-JWT_SECRET="your_secret_key"
+Create `.env` file inside `typrr-backend/`:
+
+DATABASE_URL="file:./dev.db"\
+JWT_SECRET="your_secret_key"\
 PORT=3003
-```
 
----
+------------------------------------------------------------------------
 
-## 🐳 Running with Docker Compose
+## 🐳 Running with Docker (Local)
 
-```bash
 docker compose up --build
-```
 
-Then visit:
-- Frontend → http://localhost:5173  
-- Backend → http://localhost:3003/api/health  
+------------------------------------------------------------------------
 
----
+## ☁️ Infrastructure Deployment (Terraform)
 
-## 📁 Key Endpoints
+cd terraform\
+terraform init\
+terraform plan\
+terraform apply
 
-| Method | Endpoint | Description |
-|--------|-----------|-------------|
-| POST | `/api/auth/register` | Register a new user |
-| POST | `/api/auth/login` | Login existing user |
-| GET | `/api/leaderboard` | Get leaderboard data |
-| POST | `/api/attempts` | Save typing attempt |
+------------------------------------------------------------------------
 
----
+## 📊 Monitoring & Logging
 
-## 🧱 Technologies Used
+-   CloudWatch alarms (CPU, 5xx, unhealthy targets)\
+-   ALB access logs stored in S3\
+-   ECS logs streamed to CloudWatch
 
-- **Frontend:** React, TypeScript, Vite  
-- **Backend:** Node.js, Express, Prisma  
-- **Database:** SQLite (dev) / PostgreSQL (prod)
-- **Containerization:** Docker, Docker Compose  
-- **Authentication:** JWT (JSON Web Tokens)
+------------------------------------------------------------------------
 
----
+## 🔐 Security
 
-## 🧪 Development Commands
+-   HTTPS enforced at ALB\
+-   HSTS enabled\
+-   Security headers configured in Nginx\
+-   JWT authentication\
+-   Secrets stored in AWS Secrets Manager\
+-   Private subnets for ECS tasks
 
-| Command | Description |
-|----------|-------------|
-| `npm run dev` | Start dev server |
-| `npm run build` | Build for production |
-| `npm run start` | Run compiled app |
-| `npx prisma studio` | Open Prisma UI |
-
----
-
-## 🧹 Future Improvements
-
-- Add user profile management
-- Add multi-language support
-- Add typing history graph
-- Replace SQLite with hosted PostgreSQL (for deployment)
-- Add CI/CD pipeline via GitHub Actions
-
----
+------------------------------------------------------------------------
 
 ## 📜 License
 
-This project is licensed under the MIT License.
+MIT License
+
+------------------------------------------------------------------------
+
+## 👨‍💻 Author
+
+Witalij Rapicki\
+GitHub: https://github.com/RagarRW-c\
+Email: witalij.rapicki@gmail.com
