@@ -1,5 +1,9 @@
 output "certificate_arn" {
-  value = aws_acm_certificate_validation.cert.certificate_arn
+  value = aws_acm_certificate_validation.alb.certificate_arn
+}
+
+output "cloudfront_acm_arn" {
+  value = aws_acm_certificate_validation.cloudfront.certificate_arn
 }
 
 output "zone_id" {

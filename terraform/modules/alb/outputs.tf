@@ -13,10 +13,10 @@ output "alb_zone_id" {
   value       = aws_lb.main.zone_id
 }
 
-output "frontend_target_group_arn" {
+/*output "frontend_target_group_arn" {
   description = "ARN of frontend target group"
   value       = aws_lb_target_group.frontend.arn
-}
+}*/
 
 output "backend_target_group_arn" {
   description = "ARN of backend target group"

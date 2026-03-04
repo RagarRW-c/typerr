@@ -18,6 +18,11 @@ provider "aws" {
   region = var.aws_region
 }
 
+provider "aws" {
+  alias  = "use1"
+  region = "us-east-1"
+}
+
 #random suffix
 
 resource "random_id" "suffix" {
@@ -66,6 +71,21 @@ resource "aws_s3_bucket_policy" "alb_logs" {
   })
 }
 
+module "github_actions" {
+  source = "./modules/github_actions"
+
+  github_repo = "RagarRW-c/typerr"
+}
+
+module "frontend_static" {
+  source        = "./modules/frontend_static"
+  bucket_name   = "typrr-frontend-prod"
+  project_name  = "typrr"
+  alb_dns_name  = module.alb.alb_dns_name
+  acm_arn       = module.dns.cloudfront_acm_arn
+  domain_name = var.domain_name
+}
+
 #networking
 
 module "networking" {
@@ -73,6 +93,8 @@ module "networking" {
 
   project_name = var.project_name
   vpc_cidr     = var.vpc_cidr
+  aws_region = var.aws_region
+
 }
 
 #database
@@ -115,11 +137,16 @@ module "alb" {
 module "dns" {
   source = "./modules/dns"
 
+  providers = {
+    aws       = aws
+    aws.use1  = aws.use1
+  }
+
   domain_name  = var.domain_name
   alb_dns_name = module.alb.alb_dns_name
   alb_zone_id  = module.alb.alb_zone_id
+  cloudfront_domain_name = module.frontend_static.cloudfront_domain_name
 }
-
 #jwt secret
 
 resource "aws_secretsmanager_secret" "jwt_secret" {
@@ -158,18 +185,18 @@ module "ecs" {
   ecs_security_group_id = module.networking.ecs_security_group_id
 
   backend_image_url  = module.ecr.backend_repository_url
-  frontend_image_url = module.ecr.frontend_repository_url
-
+  #frontend_image_url = module.ecr.frontend_repository_url
+  #frontend_image_tag = var.frontend_image_tag
   backend_target_group_arn  = module.alb.backend_target_group_arn
-  frontend_target_group_arn = module.alb.frontend_target_group_arn
+  #frontend_target_group_arn = module.alb.frontend_target_group_arn
 
-  backend_cpu     = 512
-  backend_memory  = 1024
-  frontend_cpu    = 256
-  frontend_memory = 512
+  backend_cpu     = 256
+  backend_memory  = 512
+  #frontend_cpu    = 256
+  #frontend_memory = 512
 
   backend_desired_count  = 1
-  frontend_desired_count = 1
+  #frontend_desired_count = 1
 
   jwt_secret_arn          = aws_secretsmanager_secret.jwt_secret.arn
   database_url_secret_arn = aws_secretsmanager_secret.database_url.arn

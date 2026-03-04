@@ -25,3 +25,33 @@ variable "certificate_arn" {
 variable "alb_logs_bucket" {
   type = string
 }
+
+variable "frontend_image_url" {
+  type    = string
+  default = null
+}
+
+variable "frontend_image_tag" {
+  type    = string
+  default = null
+}
+
+variable "frontend_target_group_arn" {
+  type    = string
+  default = null
+}
+
+variable "frontend_cpu" {
+  type    = number
+  default = null
+}
+
+variable "frontend_memory" {
+  type    = number
+  default = null
+}
+
+variable "frontend_desired_count" {
+  type    = number
+  default = 0
+}

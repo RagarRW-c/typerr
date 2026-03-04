@@ -28,3 +28,7 @@ variable "domain_name" {
   type        = string
   default     = "typrr.cloud"
 }
+
+variable "frontend_image_tag" {
+  type = string
+}

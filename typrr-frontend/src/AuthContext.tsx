@@ -26,14 +26,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
-    const savedToken = localStorage.getItem('typrr_token');
-    const savedUser = localStorage.getItem('typrr_user');
+  const savedToken = sessionStorage.getItem('typrr_token');
+  const savedUser = sessionStorage.getItem('typrr_user');
 
-    if (savedToken && savedUser) {
-      setToken(savedToken);
-      setUser(JSON.parse(savedUser));
-    }
-  }, []);
+  if (savedToken && savedUser) {
+    setToken(savedToken);
+    setUser(JSON.parse(savedUser));
+  }
+}, []);
+
+useEffect(() => {
+  if (!token) return;
+
+  const interval = setInterval(() => {
+    refreshUser();
+  }, 5 * 60 * 1000); // co 5 minut
+
+  return () => clearInterval(interval);
+}, [token]);
 
   const login = async (email: string, password: string) => {
     try {
@@ -47,8 +57,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setToken(newToken);
       setUser(newUser);
 
-      localStorage.setItem('typrr_token', newToken);
-      localStorage.setItem('typrr_user', JSON.stringify(newUser));
+      sessionStorage.setItem('typrr_token', newToken);
+      sessionStorage.setItem('typrr_user', JSON.stringify(newUser));
     } catch (error: any) {
       throw new Error(error.response?.data?.error || 'Login failed');
     }
@@ -67,8 +77,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setToken(newToken);
       setUser(newUser);
 
-      localStorage.setItem('typrr_token', newToken);
-      localStorage.setItem('typrr_user', JSON.stringify(newUser));
+      sessionStorage.setItem('typrr_token', newToken);
+      sessionStorage.setItem('typrr_user', JSON.stringify(newUser));    
     } catch (error: any) {
       throw new Error(error.response?.data?.error || 'Registration failed');
     }
@@ -86,7 +96,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       const updatedUser = response.data;
       setUser(updatedUser);
-      localStorage.setItem('typrr_user', JSON.stringify(updatedUser));
+      sessionStorage.setItem('typrr_user', JSON.stringify(updatedUser));
     } catch (error: any) {
       console.error('Failed to refresh user:', error);
       // If refresh fails with 401, logout
@@ -99,8 +109,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = () => {
     setToken(null);
     setUser(null);
-    localStorage.removeItem('typrr_token');
-    localStorage.removeItem('typrr_user');
+    sessionStorage.removeItem('typrr_token');
+    sessionStorage.removeItem('typrr_user');
   };
 
   return (

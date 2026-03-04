@@ -1,3 +1,7 @@
+############################################
+# ALB
+############################################
+
 resource "aws_lb" "main" {
   name               = "${var.project_name}-alb"
   internal           = false
@@ -18,8 +22,10 @@ resource "aws_lb" "main" {
   }
 }
 
-#fontend target group
-
+############################################
+# FRONTEND TARGET GROUP (DISABLED)
+############################################
+/*
 resource "aws_lb_target_group" "frontend" {
   name        = "${var.project_name}-frontend-tg"
   port        = 80
@@ -30,7 +36,7 @@ resource "aws_lb_target_group" "frontend" {
   health_check {
     enabled             = true
     path                = "/"
-    matcher             = "200"
+    matcher             = "200-399"
     interval            = 30
     timeout             = 5
     healthy_threshold   = 2
@@ -43,8 +49,11 @@ resource "aws_lb_target_group" "frontend" {
     Name = "${var.project_name}-frontend-tg"
   }
 }
+*/
 
-#backend target group
+############################################
+# BACKEND TARGET GROUP
+############################################
 
 resource "aws_lb_target_group" "backend" {
   name        = "${var.project_name}-backend-tg"
@@ -56,7 +65,7 @@ resource "aws_lb_target_group" "backend" {
   health_check {
     enabled             = true
     path                = "/api/health"
-    matcher             = "200"
+    matcher             = "200-399"
     interval            = 30
     timeout             = 5
     healthy_threshold   = 2
@@ -70,7 +79,9 @@ resource "aws_lb_target_group" "backend" {
   }
 }
 
-#http listener (redirect)
+############################################
+# HTTP → HTTPS REDIRECT
+############################################
 
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.main.arn
@@ -78,20 +89,14 @@ resource "aws_lb_listener" "http" {
   protocol          = "HTTP"
 
   default_action {
-    type = "redirect"
-
-    redirect {
-      port        = "443"
-      protocol    = "HTTPS"
-      status_code = "HTTP_301"
-      host        = "#{host}"
-      path        = "/#{path}"
-      query       = "#{query}"
-    }
-  }
+  type             = "forward"
+  target_group_arn = aws_lb_target_group.backend.arn
+}
 }
 
-#https listener
+############################################
+# HTTPS LISTENER
+############################################
 
 resource "aws_lb_listener" "https" {
   load_balancer_arn = aws_lb.main.arn
@@ -103,15 +108,21 @@ resource "aws_lb_listener" "https" {
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.frontend.arn
+    target_group_arn = aws_lb_target_group.backend.arn
   }
+
+  depends_on = [
+    aws_lb_target_group.backend
+  ]
 }
 
-#/api -> backend rule
+############################################
+# /api/* → BACKEND (może zostać, ale nie jest już konieczne)
+############################################
 
 resource "aws_lb_listener_rule" "backend_api" {
   listener_arn = aws_lb_listener.https.arn
-  priority     = 100
+  priority     = 10
 
   action {
     type             = "forward"
@@ -125,10 +136,13 @@ resource "aws_lb_listener_rule" "backend_api" {
   }
 
   tags = {
-    Name = "${var.project_name}-backend-rule"
+    Name = "${var.project_name}-api-rule"
   }
 }
 
+############################################
+# ALARMS
+############################################
 
 resource "aws_cloudwatch_metric_alarm" "alb_5xx" {
   alarm_name          = "${var.project_name}-alb-5xx"
@@ -147,8 +161,8 @@ resource "aws_cloudwatch_metric_alarm" "alb_5xx" {
   alarm_description = "ALB returning 5xx errors"
 }
 
-resource "aws_cloudwatch_metric_alarm" "unhealthy_targets" {
-  alarm_name          = "${var.project_name}-unhealthy-targets"
+resource "aws_cloudwatch_metric_alarm" "backend_unhealthy_targets" {
+  alarm_name          = "${var.project_name}-backend-unhealthy-targets"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 1
   metric_name         = "UnHealthyHostCount"
@@ -162,5 +176,28 @@ resource "aws_cloudwatch_metric_alarm" "unhealthy_targets" {
     LoadBalancer = aws_lb.main.arn_suffix
   }
 
-  alarm_description = "Unhealthy targets detected"
+  alarm_description = "Backend unhealthy targets detected"
 }
+
+############################################
+# FRONTEND UNHEALTHY ALARM (DISABLED)
+############################################
+/*
+resource "aws_cloudwatch_metric_alarm" "frontend_unhealthy_targets" {
+  alarm_name          = "${var.project_name}-frontend-unhealthy-targets"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 1
+  metric_name         = "UnHealthyHostCount"
+  namespace           = "AWS/ApplicationELB"
+  period              = 60
+  statistic           = "Average"
+  threshold           = 0
+
+  dimensions = {
+    TargetGroup  = aws_lb_target_group.frontend.arn_suffix
+    LoadBalancer = aws_lb.main.arn_suffix
+  }
+
+  alarm_description = "Frontend unhealthy targets detected"
+}
+*/

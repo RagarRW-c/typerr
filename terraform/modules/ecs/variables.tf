@@ -26,6 +26,7 @@ variable "backend_image_url" {
 variable "frontend_image_url" {
   description = "Frontend Docker image URL"
   type        = string
+  default = "null"
 }
 
 variable "backend_target_group_arn" {
@@ -36,18 +37,19 @@ variable "backend_target_group_arn" {
 variable "frontend_target_group_arn" {
   description = "Frontend target group ARN"
   type        = string
+  default = "null"
 }
 
 variable "backend_cpu" {
   description = "CPU units for backend (1024 = 1 vCPU)"
   type        = number
-  default     = 512
+  default     = 256
 }
 
 variable "backend_memory" {
   description = "Memory for backend in MB"
   type        = number
-  default     = 1024
+  default     = 512
 }
 
 variable "frontend_cpu" {
@@ -82,4 +84,10 @@ variable "jwt_secret_arn" {
 variable "database_url_secret_arn" {
   description = "ARN of secret containing full DATABASE_URL connection string"
   type        = string
+}
+
+variable "frontend_image_tag" {
+  type        = string
+  description = "Tag of the frontend Docker image"
+  default = "null"
 }

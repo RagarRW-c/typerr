@@ -18,11 +18,11 @@ resource "aws_cloudwatch_log_group" "backend" {
   name              = "/ecs/${var.project_name}/backend"
   retention_in_days = 7
 }
-
+/*
 resource "aws_cloudwatch_log_group" "frontend" {
   name              = "/ecs/${var.project_name}/frontend"
   retention_in_days = 7
-}
+}*/
 
 #iam roles
 
@@ -142,7 +142,7 @@ resource "aws_ecs_task_definition" "backend" {
 }
 
 #frontend task
-
+/*
 resource "aws_ecs_task_definition" "frontend" {
   family                   = "${var.project_name}-frontend"
   network_mode             = "awsvpc"
@@ -154,7 +154,7 @@ resource "aws_ecs_task_definition" "frontend" {
 
   container_definitions = jsonencode([{
     name  = "frontend"
-    image = "${var.frontend_image_url}:latest"
+    image = "${var.frontend_image_url}:${var.frontend_image_tag}"
 
     portMappings = [{
       containerPort = 80
@@ -170,7 +170,7 @@ resource "aws_ecs_task_definition" "frontend" {
       }
     }
   }])
-}
+}*/
 
 #services
 
@@ -193,7 +193,7 @@ resource "aws_ecs_service" "backend" {
     container_port   = 3003
   }
 }
-
+/*
 resource "aws_ecs_service" "frontend" {
   name            = "${var.project_name}-frontend-service"
   cluster         = aws_ecs_cluster.main.id
@@ -213,7 +213,7 @@ resource "aws_ecs_service" "frontend" {
     container_port   = 80
   }
 }
-
+*/
 resource "aws_appautoscaling_target" "backend" {
   max_capacity       = 3
   min_capacity       = 1

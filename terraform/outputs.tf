@@ -67,12 +67,26 @@ output "backend_service_name" {
   description = "Backend service name"
   value       = module.ecs.backend_service_name
 }
-
+/*
 output "frontend_service_name" {
   description = "Frontend service name"
   value       = module.ecs.frontend_service_name
-}
+}*/
 
 output "zone_id" {
   value = module.dns.zone_id
+}
+
+output "cloudfront_domain_name" {
+  value = module.frontend_static.cloudfront_domain_name
+}
+
+output "cloudfront_distribution_id" {
+  description = "CloudFront distribution ID"
+  value       = module.frontend_static.cloudfront_distribution_id
+}
+
+output "frontend_bucket_name" {
+  description = "Frontend S3 bucket"
+  value       = module.frontend_static.bucket_name
 }

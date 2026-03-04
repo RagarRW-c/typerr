@@ -228,19 +228,32 @@ export default function TyprrLikeApp() {
   const dailyIndex = useMemo(() => hashToIndex(day, SNIPPETS.length), [day]);
   
   const availableSnippets = useMemo(() => {
-    let filtered = SNIPPETS;
-    if (selectedLang) {
-      filtered = filtered.filter(s => s.lang === selectedLang);
-    }
-    if (selectedDifficulty) {
-      filtered = filtered.filter(s => s.difficulty === selectedDifficulty);
-    }
-    return filtered;
-  }, [selectedLang, selectedDifficulty]);
+  let filtered = SNIPPETS;
 
-  const snippet = mode === "daily" 
-    ? SNIPPETS[dailyIndex] 
-    : availableSnippets[practiceIndex % availableSnippets.length];
+  if (selectedLang) {
+    filtered = filtered.filter(s => s.lang === selectedLang);
+  }
+
+  if (selectedDifficulty) {
+    filtered = filtered.filter(s => s.difficulty === selectedDifficulty);
+  }
+
+  return filtered.length > 0 ? filtered : SNIPPETS;
+}, [selectedLang, selectedDifficulty]);
+
+  const snippet = useMemo(() => {
+  if (mode === "daily") {
+    return SNIPPETS[dailyIndex];
+  }
+
+  if (availableSnippets.length === 0) {
+    return SNIPPETS[dailyIndex]; // fallback
+  }
+
+  return availableSnippets[
+    practiceIndex % availableSnippets.length
+  ];
+}, [mode, dailyIndex, availableSnippets, practiceIndex]);
 
   const [input, setInput] = useState("");
   const [started, setStarted] = useState(false);
@@ -262,16 +275,28 @@ export default function TyprrLikeApp() {
     savedRef.current = false;
     setShowSuccessScreen(false);
     reset();
-    setTimeout(() => divRef.current?.focus(), 0);
+    setTimeout(() => {
+  if (document.activeElement?.tagName !== "SELECT") {
+    divRef.current?.focus();
+  }
+}, 0);
   }, [reset]);
 
   // Reset on mode/filter change - placed AFTER resetRun definition
   useEffect(() => {
-    if (mode === "practice") {
-      setPracticeIndex(0);
-      resetRun();
-    }
-  }, [selectedLang, selectedDifficulty, mode, resetRun]);
+  if (mode === "practice") {
+    setPracticeIndex(0);
+
+    // ręczny reset bez używania resetRun
+    setInput("");
+    setStarted(false);
+    setFinished(false);
+    setErrors(0);
+    setTyped(0);
+    reset();
+  }
+  // 🔥 USUWAMY resetRun z zależności
+}, [selectedLang, selectedDifficulty, mode]);
 
   const target = snippet.text;
   const correctCount = useMemo(() => {
@@ -509,8 +534,12 @@ export default function TyprrLikeApp() {
   const dailyLocked = mode === "daily" && attemptsLeft <= 0;
 
   useEffect(() => {
-    divRef.current?.focus();
-  }, [snippet]);
+  if (!showDashboard && !showAdmin && !showProfile) {
+    setTimeout(() => {
+      divRef.current?.focus();
+    }, 0);
+  }
+}, [snippet, showDashboard, showAdmin, showProfile]);
 
   const handleShare = () => {
     const text = `I just typed a snippet at ${Math.round(wpm)} WPM with ${(accuracy*100).toFixed(1)}% accuracy! #typrrlike`;
@@ -602,8 +631,17 @@ export default function TyprrLikeApp() {
             <AdminDashboard />
           ) : showDashboard ? (
             <Dashboard />
-          ) : showProfile ? (
+          )  : showProfile ? (
             <ProfilePage />
+          ) : showSuccessScreen ? (
+            <SuccessScreen
+              wpm={wpm}
+              accuracy={accuracy}
+              errors={errors}
+              timeMs={ms}
+              onClose={resetRun}
+              onShare={handleShare}
+  />
           ) : (
             <>
               {mode === "practice" && (
@@ -613,6 +651,8 @@ export default function TyprrLikeApp() {
                     <select 
                       value={selectedLang || ""} 
                       onChange={(e) => setSelectedLang(e.target.value || null)}
+                      onKeyDown={(e) => e.stopPropagation()}
+                      onClick={(e) => e.stopPropagation()}
                       className="ml-2 px-3 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm"
                     >
                       <option value="">All Languages</option>
@@ -765,17 +805,6 @@ export default function TyprrLikeApp() {
         <MilestoneNotification 
           wpm={currentMilestone} 
           onDismiss={dismissMilestone}
-        />
-      )}
-      
-      {showSuccessScreen && (
-        <SuccessScreen
-          wpm={wpm}
-          accuracy={accuracy}
-          errors={errors}
-          timeMs={ms}
-          onClose={resetRun}
-          onShare={handleShare}
         />
       )}
       
