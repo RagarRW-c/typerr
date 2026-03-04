@@ -12,6 +12,13 @@ terraform {
       version = "~> 3.0"
     }
   }
+
+  backend "s3" {
+    bucket         = "typrr-terraform-state"
+    key            = "prod/terraform.tfstate"
+    region         = "eu-central-1"
+    dynamodb_table = "terraform-locks"
+  }
 }
 
 provider "aws" {
