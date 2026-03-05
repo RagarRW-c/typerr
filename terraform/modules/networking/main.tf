@@ -233,6 +233,7 @@ resource "aws_vpc_endpoint" "s3" {
 }
 
 # ECR API
+/*
 resource "aws_vpc_endpoint" "ecr_api" {
   vpc_id            = aws_vpc.main.id
   service_name      = "com.amazonaws.${var.aws_region}.ecr.api"
@@ -240,9 +241,12 @@ resource "aws_vpc_endpoint" "ecr_api" {
 
   subnet_ids         = aws_subnet.private[*].id
   security_group_ids = [aws_security_group.vpc_endpoint.id]
-}
+
+  private_dns_enabled = true
+}*/
 
 # ECR DKR
+/*
 resource "aws_vpc_endpoint" "ecr_dkr" {
   vpc_id            = aws_vpc.main.id
   service_name      = "com.amazonaws.${var.aws_region}.ecr.dkr"
@@ -250,9 +254,12 @@ resource "aws_vpc_endpoint" "ecr_dkr" {
 
   subnet_ids         = aws_subnet.private[*].id
   security_group_ids = [aws_security_group.vpc_endpoint.id]
-}
+
+  private_dns_enabled = true
+}*/
 
 # CloudWatch Logs
+/*
 resource "aws_vpc_endpoint" "logs" {
   vpc_id            = aws_vpc.main.id
   service_name      = "com.amazonaws.${var.aws_region}.logs"
@@ -260,9 +267,12 @@ resource "aws_vpc_endpoint" "logs" {
 
   subnet_ids         = aws_subnet.private[*].id
   security_group_ids = [aws_security_group.vpc_endpoint.id]
-}
+
+  private_dns_enabled = true
+}*/
 
 # Secrets Manager
+/*
 resource "aws_vpc_endpoint" "secretsmanager" {
   vpc_id            = aws_vpc.main.id
   service_name      = "com.amazonaws.${var.aws_region}.secretsmanager"
@@ -270,4 +280,10 @@ resource "aws_vpc_endpoint" "secretsmanager" {
 
   subnet_ids         = aws_subnet.private[*].id
   security_group_ids = [aws_security_group.vpc_endpoint.id]
-}
+
+  private_dns_enabled = true
+
+  tags = {
+    Name = "${var.project_name}-secretsmanager-endpoint"
+  }
+}*/

@@ -48,7 +48,7 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution" {
 
 resource "aws_iam_role_policy" "ecs_secrets_access" {
   name = "${var.project_name}-ecs-secrets-access"
-  role = aws_iam_role.ecs_task_execution.id
+  role = aws_iam_role.ecs_task_execution.name
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -130,14 +130,6 @@ resource "aws_ecs_task_definition" "backend" {
         "awslogs-stream-prefix" = "backend"
       }
     }
-
-    healthCheck = {
-      command     = ["CMD-SHELL", "curl -f http://localhost:3003/api/health || exit 1"]
-      interval    = 30
-      timeout     = 5
-      retries     = 3
-      startPeriod = 60
-    }
   }])
 }
 
@@ -181,11 +173,14 @@ resource "aws_ecs_service" "backend" {
   desired_count   = var.backend_desired_count
   launch_type     = "FARGATE"
 
+  deployment_minimum_healthy_percent = 0
+  deployment_maximum_percent         = 200
+
   network_configuration {
-    subnets          = var.private_subnet_ids
-    security_groups  = [var.ecs_security_group_id]
-    assign_public_ip = false
-  }
+  subnets          = var.public_subnet_ids
+  security_groups  = [var.ecs_security_group_id]
+  assign_public_ip = true
+}
 
   load_balancer {
     target_group_arn = var.backend_target_group_arn
@@ -256,4 +251,38 @@ resource "aws_cloudwatch_metric_alarm" "backend_high_cpu" {
   }
 
   alarm_description = "Backend CPU above 80%"
+}
+
+resource "aws_appautoscaling_target" "backend_schedule" {
+  max_capacity = 1
+  min_capacity = 0
+  resource_id = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.backend.name}"
+  scalable_dimension = "ecs:service:DesiredCount"
+  service_namespace = "ecs"
+}
+
+resource "aws_appautoscaling_scheduled_action" "backend_scale_up" {
+  name               = "${var.project_name}-scale-up"
+  service_namespace  = aws_appautoscaling_target.backend_schedule.service_namespace
+  resource_id        = aws_appautoscaling_target.backend_schedule.resource_id
+  scalable_dimension = aws_appautoscaling_target.backend_schedule.scalable_dimension
+  schedule           = "cron(0 6 * * ? *)" # 08:00 CET = 06:00 UTC
+
+  scalable_target_action {
+    min_capacity = 1
+    max_capacity = 1
+  }
+}
+
+resource "aws_appautoscaling_scheduled_action" "backend_scale_down" {
+  name               = "${var.project_name}-scale-down"
+  service_namespace  = aws_appautoscaling_target.backend_schedule.service_namespace
+  resource_id        = aws_appautoscaling_target.backend_schedule.resource_id
+  scalable_dimension = aws_appautoscaling_target.backend_schedule.scalable_dimension
+  schedule           = "cron(0 18 * * ? *)" # 20:00 CET = 18:00 UTC
+
+  scalable_target_action {
+    min_capacity = 0
+    max_capacity = 0
+  }
 }

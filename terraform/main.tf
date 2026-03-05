@@ -189,6 +189,7 @@ module "ecs" {
   project_name          = var.project_name
   aws_region            = var.aws_region
   private_subnet_ids    = module.networking.private_subnet_ids
+  public_subnet_ids = module.networking.public_subnet_ids
   ecs_security_group_id = module.networking.ecs_security_group_id
 
   backend_image_url  = module.ecr.backend_repository_url

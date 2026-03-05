@@ -35,6 +35,7 @@ resource "aws_db_instance" "main" {
   engine         = "postgres"
   engine_version = "16"
   instance_class = var.db_instance_class
+  engine_lifecycle_support = "open-source-rds-extended-support-disabled"
 
   allocated_storage = 20
   storage_type      = "gp3"
