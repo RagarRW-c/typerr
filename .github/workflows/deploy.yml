@@ -35,7 +35,7 @@ jobs:
         working-directory: terraform
         run: terraform init
 
-      # Load outputs
+      # Load Terraform outputs
       - name: Load Terraform outputs
         working-directory: terraform
         run: |
@@ -50,7 +50,7 @@ jobs:
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      # Build backend
+      # Build backend image
       - name: Build backend image
         run: docker build -t typrr-backend ./typrr-backend
 
@@ -62,45 +62,25 @@ jobs:
       - name: Push image
         run: docker push $ECR_URL:latest
 
-      # Create overrides JSON
-      - name: Prepare migration override
-        run: |
-          cat <<EOF > override.json
-          {
-            "containerOverrides": [
-              {
-                "name": "backend",
-                "command": ["sh","-c","npx prisma migrate deploy"]
-              }
-            ]
-          }
-          EOF
-
       # Run database migrations
       - name: Run Prisma migrations
-        run: |
-          aws ecs run-task \
-            --cluster $ECS_CLUSTER \
-            --launch-type FARGATE \
-            --task-definition $TASK_DEFINITION \
-            --network-configuration "awsvpcConfiguration={subnets=[subnet-0e7de6c8fc870b9e4,subnet-066ec7f6416aa77cc],securityGroups=[sg-0254308430abf1e2e],assignPublicIp=ENABLED}" \
-            --overrides file://override.json
+        run: aws ecs run-task --cluster "$ECS_CLUSTER" --launch-type FARGATE --task-definition "$TASK_DEFINITION" --network-configuration "awsvpcConfiguration={subnets=[subnet-0e7de6c8fc870b9e4,subnet-066ec7f6416aa77cc],securityGroups=[sg-0254308430abf1e2e],assignPublicIp=ENABLED}" --overrides '{"containerOverrides":[{"name":"backend","command":["sh","-c","npx prisma migrate deploy"]}]}'
 
       # Deploy ECS
       - name: Deploy ECS
         run: |
           aws ecs update-service \
-            --cluster $ECS_CLUSTER \
-            --service $ECS_SERVICE \
+            --cluster "$ECS_CLUSTER" \
+            --service "$ECS_SERVICE" \
             --force-new-deployment
 
-      # Setup Node for frontend
+      # Setup Node
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
-      # Install frontend deps
+      # Install frontend dependencies
       - name: Install frontend dependencies
         working-directory: typrr-frontend
         run: npm ci
@@ -118,5 +98,5 @@ jobs:
       - name: Invalidate CloudFront
         run: |
           aws cloudfront create-invalidation \
-            --distribution-id $CLOUDFRONT_ID \
+            --distribution-id "$CLOUDFRONT_ID" \
             --paths "/*"
