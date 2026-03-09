@@ -42,6 +42,7 @@ jobs:
         echo "ECR_URL=$(terraform output -raw backend_ecr_url)" >> $GITHUB_ENV
         echo "ECS_CLUSTER=$(terraform output -raw ecs_cluster_name)" >> $GITHUB_ENV
         echo "ECS_SERVICE=$(terraform output -raw backend_service_name)" >> $GITHUB_ENV
+        echo "TASK_DEFINITION=$(terraform output -raw backend_task_definition)" >> $GITHUB_ENV
         echo "S3_BUCKET=$(terraform output -raw frontend_bucket_name)" >> $GITHUB_ENV
         echo "CLOUDFRONT_ID=$(terraform output -raw cloudfront_distribution_id)" >> $GITHUB_ENV
 
@@ -70,7 +71,7 @@ jobs:
         aws ecs run-task \
           --cluster $ECS_CLUSTER \
           --launch-type FARGATE \
-          --task-definition $ECS_SERVICE \
+          --task-definition $TASK_DEFINITION \
           --network-configuration "awsvpcConfiguration={subnets=[subnet-0e7de6c8fc870b9e4,subnet-066ec7f6416aa77cc],securityGroups=[sg-0254308430abf1e2e],assignPublicIp=ENABLED}" \
           --overrides '{
             "containerOverrides": [{
