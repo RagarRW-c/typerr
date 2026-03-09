@@ -1,49 +1,52 @@
-# Etap 1: Build
+# ================================
+# Stage 1 — Build
+# ================================
 FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# Kopiuj pliki konfiguracyjne
+# Copy package files
 COPY package*.json tsconfig.json ./
 
-# Kopiuj prisma (schema + migrations)
-COPY prisma ./prisma/
+# Install dependencies
+RUN npm ci
 
-# Instaluj zależności
-RUN npm install
+# Copy prisma schema + migrations
+COPY prisma ./prisma
 
-# Kopiuj kod źródłowy
-COPY src ./src
-
-# Generuj Prisma Client
+# Generate Prisma client
 RUN npx prisma generate
 
-# Kompiluj TypeScript
+# Copy source code
+COPY src ./src
+
+# Build TypeScript
 RUN npx tsc
 
 
-# Etap 2: Production
+# ================================
+# Stage 2 — Production
+# ================================
 FROM node:22-alpine
 
 WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Zainstaluj production dependencies
+# Install production dependencies
 COPY package*.json ./
 RUN npm ci --omit=dev
 
-# Kopiuj build
+# Copy compiled app
 COPY --from=builder /app/dist ./dist
 
-# Kopiuj prisma client
+# Copy Prisma client
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
-# Kopiuj prisma schema + migrations
+# Copy prisma schema (needed for migrations)
 COPY --from=builder /app/prisma ./prisma
 
 EXPOSE 3003
 
-# Migracje + start serwera
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/server.js"]
+CMD ["node", "dist/server.js"]
