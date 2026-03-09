@@ -52,18 +52,15 @@ jobs:
 
     # Build backend
     - name: Build backend image
-      run: |
-        docker build -t typrr-backend ./typrr-backend
+      run: docker build -t typrr-backend ./typrr-backend
 
     # Tag image
     - name: Tag image
-      run: |
-        docker tag typrr-backend:latest $ECR_URL:latest
+      run: docker tag typrr-backend:latest $ECR_URL:latest
 
     # Push image
     - name: Push image
-      run: |
-        docker push $ECR_URL:latest
+      run: docker push $ECR_URL:latest
 
     # Run database migrations
     - name: Run Prisma migrations
@@ -73,12 +70,7 @@ jobs:
           --launch-type FARGATE \
           --task-definition $TASK_DEFINITION \
           --network-configuration "awsvpcConfiguration={subnets=[subnet-0e7de6c8fc870b9e4,subnet-066ec7f6416aa77cc],securityGroups=[sg-0254308430abf1e2e],assignPublicIp=ENABLED}" \
-          --overrides '{
-            "containerOverrides": [{
-              "name": "backend",
-              "command": ["sh","-c","npx prisma migrate deploy"]
-            }]
-          }'
+          --overrides '{"containerOverrides":[{"name":"backend","command":["sh","-c","npx prisma migrate deploy"]}]}'
 
     # Deploy ECS
     - name: Deploy ECS
@@ -88,24 +80,25 @@ jobs:
           --service $ECS_SERVICE \
           --force-new-deployment
 
-    # Build frontend
+    # Setup Node for frontend
     - name: Setup Node
       uses: actions/setup-node@v4
       with:
         node-version: 22
 
+    # Install frontend deps
     - name: Install frontend dependencies
       working-directory: typrr-frontend
       run: npm ci
 
+    # Build frontend
     - name: Build frontend
       working-directory: typrr-frontend
       run: npm run build
 
     # Upload frontend
     - name: Upload frontend to S3
-      run: |
-        aws s3 sync typrr-frontend/dist s3://$S3_BUCKET --delete
+      run: aws s3 sync typrr-frontend/dist s3://$S3_BUCKET --delete
 
     # Invalidate CloudFront
     - name: Invalidate CloudFront
