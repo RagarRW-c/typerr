@@ -1,7 +1,5 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import axios from 'axios';
-
-const API_URL = '/api';
+import { apiClient, setAccessToken } from './api';
 
 interface User {
   id: string;
@@ -11,10 +9,9 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  token: string | null;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, username: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   isAuthenticated: boolean;
 }
@@ -23,106 +20,73 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
+  // 🔥 BOOTSTRAP AUTH ON APP START
   useEffect(() => {
-  const savedToken = sessionStorage.getItem('typrr_token');
-  const savedUser = sessionStorage.getItem('typrr_user');
+    const bootstrapAuth = async () => {
+      try {
+        const refreshResponse = await apiClient.refresh();
+        setAccessToken(refreshResponse.accessToken);
 
-  if (savedToken && savedUser) {
-    setToken(savedToken);
-    setUser(JSON.parse(savedUser));
-  }
-}, []);
+        const profile = await apiClient.getProfile();
+        setUser(profile.data.user);
+      } catch {
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-useEffect(() => {
-  if (!token) return;
-
-  const interval = setInterval(() => {
-    refreshUser();
-  }, 5 * 60 * 1000); // co 5 minut
-
-  return () => clearInterval(interval);
-}, [token]);
+    bootstrapAuth();
+  }, []);
 
   const login = async (email: string, password: string) => {
-    try {
-      const response = await axios.post(`${API_URL}/auth/login`, {
-        email,
-        password,
-      });
-
-      const { token: newToken, user: newUser } = response.data;
-
-      setToken(newToken);
-      setUser(newUser);
-
-      sessionStorage.setItem('typrr_token', newToken);
-      sessionStorage.setItem('typrr_user', JSON.stringify(newUser));
-    } catch (error: any) {
-      throw new Error(error.response?.data?.error || 'Login failed');
-    }
+    const data = await apiClient.login(email, password);
+    setAccessToken(data.accessToken);
+    setUser(data.user);
   };
 
-  const register = async (email: string, username: string, password: string) => {
-    try {
-      const response = await axios.post(`${API_URL}/auth/register`, {
-        email,
-        username,
-        password,
-      });
-
-      const { token: newToken, user: newUser } = response.data;
-
-      setToken(newToken);
-      setUser(newUser);
-
-      sessionStorage.setItem('typrr_token', newToken);
-      sessionStorage.setItem('typrr_user', JSON.stringify(newUser));    
-    } catch (error: any) {
-      throw new Error(error.response?.data?.error || 'Registration failed');
-    }
+  const register = async (
+    email: string,
+    username: string,
+    password: string
+  ) => {
+    const data = await apiClient.register(email, username, password);
+    setAccessToken(data.accessToken);
+    setUser(data.user);
   };
 
   const refreshUser = async () => {
     try {
-      if (!token) return;
-      
-      const response = await axios.get(`${API_URL}/users/me`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const updatedUser = response.data;
-      setUser(updatedUser);
-      sessionStorage.setItem('typrr_user', JSON.stringify(updatedUser));
-    } catch (error: any) {
-      console.error('Failed to refresh user:', error);
-      // If refresh fails with 401, logout
-      if (error.response?.status === 401) {
-        logout();
-      }
+      const response = await apiClient.getProfile();
+      setUser(response.data.user);
+    } catch {
+      await logout();
     }
   };
 
-  const logout = () => {
-    setToken(null);
+  const logout = async () => {
+    try {
+      await apiClient.logout();
+    } catch {}
+    setAccessToken(null);
     setUser(null);
-    sessionStorage.removeItem('typrr_token');
-    sessionStorage.removeItem('typrr_user');
   };
+
+  if (loading) {
+    return null; // możesz tu dać spinner jeśli chcesz
+  }
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        token,
         login,
         register,
         logout,
         refreshUser,
-        isAuthenticated: !!token,
+        isAuthenticated: !!user,
       }}
     >
       {children}

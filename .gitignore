@@ -52,3 +52,8 @@ terraform.tar
 # Archives
 *.tar
 *.zip
+
+
+pipeline.txt
+
+typrr-backend/prisma/dev.db
