@@ -11,89 +11,98 @@ permissions:
 env:
   AWS_REGION: eu-central-1
 
+  # 🔥 stałe wartości (infra już istnieje)
+  ECR_URL: 613136968754.dkr.ecr.eu-central-1.amazonaws.com/typrr-backend
+  ECS_CLUSTER: typrr-cluster
+  ECS_SERVICE: typrr-backend-service
+  S3_BUCKET: typrr-frontend-prod-613136968754
+  CLOUDFRONT_ID: E4D0MBKIV3QMA
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-
+      # =========================
+      # Checkout
+      # =========================
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # AWS login via OIDC
+      # =========================
+      # AWS auth (OIDC)
+      # =========================
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::242046727288:role/github-actions-typrr
           aws-region: ${{ env.AWS_REGION }}
 
-      # Terraform
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-
-      - name: Terraform Init
-        working-directory: terraform
-        run: terraform init
-
-      # Load Terraform outputs
-      - name: Load Terraform outputs
-        working-directory: terraform
-        run: |
-          echo "ECR_URL=$(terraform output -raw backend_ecr_url)" >> $GITHUB_ENV
-          echo "ECS_CLUSTER=$(terraform output -raw ecs_cluster_name)" >> $GITHUB_ENV
-          echo "ECS_SERVICE=$(terraform output -raw backend_service_name)" >> $GITHUB_ENV
-          echo "S3_BUCKET=$(terraform output -raw frontend_bucket_name)" >> $GITHUB_ENV
-          echo "CLOUDFRONT_ID=$(terraform output -raw cloudfront_distribution_id)" >> $GITHUB_ENV
-
-      # Login to ECR
+      # =========================
+      # ECR login
+      # =========================
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      # Build backend image
-      - name: Build backend image
+      # =========================
+      # Build + push backend
+      # =========================
+      - name: Build Docker image
         run: docker build -t typrr-backend ./typrr-backend
 
-      # Tag image
       - name: Tag image
         run: docker tag typrr-backend:latest $ECR_URL:latest
 
-      # Push image
       - name: Push image
         run: docker push $ECR_URL:latest
 
-      # Run Prisma migrations
+      # =========================
+      # Run DB migrations (ECS task)
+      # =========================
       - name: Run Prisma migrations
-        run: aws ecs run-task --cluster "$ECS_CLUSTER" --launch-type FARGATE --task-definition typrr-backend --network-configuration "awsvpcConfiguration={subnets=[subnet-0e7de6c8fc870b9e4,subnet-066ec7f6416aa77cc],securityGroups=[sg-0254308430abf1e2e],assignPublicIp=ENABLED}" --overrides '{"containerOverrides":[{"name":"backend","command":["sh","-c","npx prisma migrate deploy"]}]}'
+        run: |
+          aws ecs run-task \
+            --cluster "$ECS_CLUSTER" \
+            --launch-type FARGATE \
+            --task-definition typrr-backend \
+            --network-configuration "awsvpcConfiguration={subnets=[subnet-0e7de6c8fc870b9e4,subnet-066ec7f6416aa77cc],securityGroups=[sg-0254308430abf1e2e],assignPublicIp=ENABLED}" \
+            --overrides '{"containerOverrides":[{"name":"backend","command":["sh","-c","npx prisma migrate deploy"]}]}'
 
-      # Deploy ECS
-      - name: Deploy ECS
+      # =========================
+      # Deploy ECS (rolling update)
+      # =========================
+      - name: Deploy ECS service
         run: |
           aws ecs update-service \
             --cluster "$ECS_CLUSTER" \
             --service "$ECS_SERVICE" \
             --force-new-deployment
 
-      # Setup Node
+      # =========================
+      # Frontend build
+      # =========================
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
-      # Install frontend dependencies
       - name: Install frontend dependencies
         working-directory: typrr-frontend
         run: npm ci
 
-      # Build frontend
       - name: Build frontend
         working-directory: typrr-frontend
         run: npm run build
 
-      # Upload frontend to S3
-      - name: Upload frontend to S3
+      # =========================
+      # Upload frontend
+      # =========================
+      - name: Upload to S3
         run: aws s3 sync typrr-frontend/dist s3://$S3_BUCKET --delete
 
-      # Invalidate CloudFront
+      # =========================
+      # Invalidate cache
+      # =========================
       - name: Invalidate CloudFront
         run: |
           aws cloudfront create-invalidation \
