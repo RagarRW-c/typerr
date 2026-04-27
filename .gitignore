@@ -56,4 +56,4 @@ terraform.tar
 
 pipeline.txt
 
-typrr-backend/prisma/dev.db
+typrr-backend/prisma/dev.dbterraform/tfplan.txt

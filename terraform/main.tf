@@ -13,12 +13,12 @@ terraform {
     }
   }
 
-  backend "s3" {
+  /*backend "s3" {
     bucket         = "typrr-terraform-state"
     key            = "prod/terraform.tfstate"
     region         = "eu-central-1"
     dynamodb_table = "terraform-locks"
-  }
+  }*/
 }
 
 provider "aws" {
@@ -86,7 +86,7 @@ module "github_actions" {
 
 module "frontend_static" {
   source        = "./modules/frontend_static"
-  bucket_name   = "typrr-frontend-prod"
+  bucket_name   = "typrr-frontend-prod-613136968754"
   project_name  = "typrr"
   alb_dns_name  = module.alb.alb_dns_name
   acm_arn       = module.dns.cloudfront_acm_arn

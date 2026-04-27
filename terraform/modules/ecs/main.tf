@@ -194,12 +194,16 @@ resource "aws_ecs_service" "backend" {
   desired_count   = var.backend_desired_count
   launch_type     = "FARGATE"
 
+  enable_execute_command = true
+
+  force_new_deployment = true
+
   deployment_minimum_healthy_percent = 0
   deployment_maximum_percent         = 200
 
-  network_configuration {
-  subnets          = var.public_subnet_ids
-  security_groups  = [var.ecs_security_group_id]
+ network_configuration {
+  subnets         = var.public_subnet_ids
+  security_groups = [var.ecs_security_group_id]
   assign_public_ip = true
 }
 

@@ -89,9 +89,17 @@ resource "aws_lb_listener" "http" {
   protocol          = "HTTP"
 
   default_action {
-  type             = "forward"
-  target_group_arn = aws_lb_target_group.backend.arn
+    type = "redirect"
+
+    redirect {
+  port        = "443"
+  protocol    = "HTTPS"
+  host        = "#{host}"
+  path        = "/#{path}"
+  query       = "#{query}"
+  status_code = "HTTP_301"
 }
+  }
 }
 
 ############################################
