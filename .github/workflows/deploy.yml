@@ -11,8 +11,10 @@ permissions:
 env:
   AWS_REGION: eu-central-1
 
-  # 🔥 stałe wartości (infra już istnieje)
-  ECR_URL: 613136968754.dkr.ecr.eu-central-1.amazonaws.com/typrr-backend
+  # 🔥 ROZDZIELONE
+  ECR_REGISTRY: 613136968754.dkr.ecr.eu-central-1.amazonaws.com
+  ECR_REPOSITORY: typrr-backend
+
   ECS_CLUSTER: typrr-cluster
   ECS_SERVICE: typrr-backend-service
   S3_BUCKET: typrr-frontend-prod-613136968754
@@ -30,7 +32,7 @@ jobs:
         uses: actions/checkout@v4
 
       # =========================
-      # AWS auth (OIDC)
+      # AWS auth
       # =========================
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -39,25 +41,33 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       # =========================
-      # ECR login
+      # ECR LOGIN (FIX)
       # =========================
       - name: Login to Amazon ECR
-        uses: aws-actions/amazon-ecr-login@v2
+        run: |
+          aws ecr get-login-password --region $AWS_REGION | \
+          docker login --username AWS --password-stdin $ECR_REGISTRY
 
       # =========================
-      # Build + push backend
+      # BUILD
       # =========================
       - name: Build Docker image
         run: docker build -t typrr-backend ./typrr-backend
 
+      # =========================
+      # TAG
+      # =========================
       - name: Tag image
-        run: docker tag typrr-backend:latest $ECR_URL:latest
-
-      - name: Push image
-        run: docker push $ECR_URL:latest
+        run: docker tag typrr-backend:latest $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
       # =========================
-      # Run DB migrations (ECS task)
+      # PUSH
+      # =========================
+      - name: Push image
+        run: docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+      # =========================
+      # MIGRATIONS
       # =========================
       - name: Run Prisma migrations
         run: |
@@ -69,7 +79,7 @@ jobs:
             --overrides '{"containerOverrides":[{"name":"backend","command":["sh","-c","npx prisma migrate deploy"]}]}'
 
       # =========================
-      # Deploy ECS (rolling update)
+      # DEPLOY ECS
       # =========================
       - name: Deploy ECS service
         run: |
@@ -79,7 +89,7 @@ jobs:
             --force-new-deployment
 
       # =========================
-      # Frontend build
+      # FRONTEND
       # =========================
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -95,13 +105,13 @@ jobs:
         run: npm run build
 
       # =========================
-      # Upload frontend
+      # S3
       # =========================
       - name: Upload to S3
         run: aws s3 sync typrr-frontend/dist s3://$S3_BUCKET --delete
 
       # =========================
-      # Invalidate cache
+      # CLOUDFRONT
       # =========================
       - name: Invalidate CloudFront
         run: |
