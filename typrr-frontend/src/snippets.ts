@@ -530,6 +530,33 @@ ORDER BY salary DESC;`,
 }`,
     description: "Flexbox layout"
   },
+
+    // ========== TERRAFORM ==========
+  {
+    id: "tf_s3_bucket",
+    lang: "terraform",
+    difficulty: "easy",
+    category: "basics",
+    text: `resource "aws_s3_bucket" "frontend" {
+      bucket = "typrr-frontend"
+      force_destroy = true
+    }`,
+    description: "Basic S3 bucket resource"
+  },
+
+  // ========== JSON ==========
+  {
+    id: "json_api_payload",
+    lang: "json",
+    difficulty: "easy",
+    category: "web",
+    text: `{
+      "email": "test@test.com",
+      "password": "123456",
+      "remember": true
+    }`,
+    description: "Sample API payload"
+  },
 ];
 
 // Helper functions
