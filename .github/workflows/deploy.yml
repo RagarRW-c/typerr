@@ -2,7 +2,8 @@ name: Deploy Typrr
 
 on:
   push:
-    branches: ["main"]
+    branches:
+      - main
 
 permissions:
   id-token: write
@@ -10,13 +11,10 @@ permissions:
 
 env:
   AWS_REGION: eu-central-1
-
   ECR_REGISTRY: 613136968754.dkr.ecr.eu-central-1.amazonaws.com
   ECR_REPOSITORY: typrr-backend
-
   ECS_CLUSTER: typrr-cluster
   ECS_SERVICE: typrr-backend-service
-
   S3_BUCKET: typrr-frontend-prod-613136968754
   CLOUDFRONT_ID: E4D0MBKIV3QMA
 
@@ -49,7 +47,7 @@ jobs:
           docker login --username AWS --password-stdin $ECR_REGISTRY
 
       # =========================
-      # BUILD + PUSH (VERSIONED)
+      # BUILD + PUSH
       # =========================
       - name: Set image tag
         run: echo "IMAGE_TAG=${GITHUB_SHA}" >> $GITHUB_ENV
@@ -66,10 +64,10 @@ jobs:
         run: docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
       # =========================
-      # MIGRATIONS (one-off task)
+      # MIGRATIONS
       # =========================
       - name: Run Prisma migrations
-        run: |
+        run: >
           aws ecs run-task \
             --cluster "$ECS_CLUSTER" \
             --launch-type FARGATE \
@@ -89,10 +87,18 @@ jobs:
       - name: Update image in task definition
         run: |
           cat task-def.json | \
-          jq --arg IMAGE "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
-          '.containerDefinitions[0].image = $IMAGE |
-           del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)' \
-          > new-task-def.json
+          jq --arg IMAGE "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" '
+          .containerDefinitions[0].image = $IMAGE
+          | del(
+              .taskDefinitionArn,
+              .revision,
+              .status,
+              .requiresAttributes,
+              .compatibilities,
+              .registeredAt,
+              .registeredBy
+            )
+          ' > new-task-def.json
 
       - name: Register new task definition
         run: |
@@ -100,7 +106,7 @@ jobs:
             --cli-input-json file://new-task-def.json
 
       # =========================
-      # DEPLOY ECS (NEW REVISION)
+      # DEPLOY ECS
       # =========================
       - name: Deploy new version
         run: |
@@ -130,13 +136,13 @@ jobs:
         run: npm run build
 
       # =========================
-      # S3 DEPLOY
+      # S3
       # =========================
       - name: Upload to S3
         run: aws s3 sync typrr-frontend/dist s3://$S3_BUCKET --delete
 
       # =========================
-      # CLOUDFRONT INVALIDATION
+      # CLOUDFRONT
       # =========================
       - name: Invalidate CloudFront
         run: |
