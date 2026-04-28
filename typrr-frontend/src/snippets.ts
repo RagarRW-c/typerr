@@ -1,5 +1,17 @@
 export type Difficulty = "easy" | "medium" | "hard";
-export type Category = "algorithms" | "web" | "data-structures" | "basics" | "functions" | "loops" | "classes";
+export type Category =
+  | "algorithms"
+  | "web"
+  | "data-structures"
+  | "basics"
+  | "functions"
+  | "loops"
+  | "classes"
+  | "networking"
+  | "security"
+  | "compute"
+  | "api"
+  | "config";
 
 export interface Snippet {
   id: string;
@@ -543,6 +555,120 @@ ORDER BY salary DESC;`,
     }`,
     description: "Basic S3 bucket resource"
   },
+  {
+  id: "tf_vpc",
+  lang: "terraform",
+  difficulty: "medium",
+  category: "networking",
+  text: `resource "aws_vpc" "main" {
+  cidr_block = "10.0.0.0/16"
+}`,
+  description: "Create VPC"
+},
+{
+  id: "tf_subnet",
+  lang: "terraform",
+  difficulty: "medium",
+  category: "networking",
+  text: `resource "aws_subnet" "public" {
+  vpc_id     = "vpc-123456"
+  cidr_block = "10.0.1.0/24"
+}`,
+  description: "Create subnet"
+},
+{
+  id: "tf_sg",
+  lang: "terraform",
+  difficulty: "easy",
+  category: "security",
+  text: `resource "aws_security_group" "web" {
+  name = "web-sg"
+}`,
+  description: "Security group"
+},
+{
+  id: "tf_ecs_cluster",
+  lang: "terraform",
+  difficulty: "medium",
+  category: "compute",
+  text: `resource "aws_ecs_cluster" "main" {
+  name = "typrr-cluster"
+}`,
+  description: "ECS cluster"
+},
+{
+  id: "tf_alb",
+  lang: "terraform",
+  difficulty: "medium",
+  category: "networking",
+  text: `resource "aws_lb" "app" {
+  name               = "typrr-alb"
+  load_balancer_type = "application"
+}`,
+  description: "Application Load Balancer"
+},
+
+// ========== JSON ==========
+{
+  id: "json_login",
+  lang: "json",
+  difficulty: "easy",
+  category: "web",
+  text: `{
+  "email": "user@test.com",
+  "password": "123456"
+}`,
+  description: "Login payload"
+},
+{
+  id: "json_user",
+  lang: "json",
+  difficulty: "easy",
+  category: "web",
+  text: `{
+  "id": "123",
+  "username": "ragar",
+  "email": "test@test.com"
+}`,
+  description: "User object"
+},
+{
+  id: "json_headers",
+  lang: "json",
+  difficulty: "easy",
+  category: "api",
+  text: `{
+  "Authorization": "Bearer token",
+  "Content-Type": "application/json"
+}`,
+  description: "HTTP headers"
+},
+{
+  id: "json_response",
+  lang: "json",
+  difficulty: "medium",
+  category: "api",
+  text: `{
+  "success": true,
+  "data": {
+    "score": 100,
+    "time": 4.6
+  }
+}`,
+  description: "API response"
+},
+{
+  id: "json_config",
+  lang: "json",
+  difficulty: "medium",
+  category: "config",
+  text: `{
+  "env": "production",
+  "port": 3000,
+  "debug": false
+}`,
+  description: "App config"
+},
 
   // ========== JSON ==========
   {
