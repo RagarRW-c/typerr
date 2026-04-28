@@ -619,13 +619,26 @@ export default function TyprrLikeApp() {
             keyboardShortcuts={<KeyboardShortcutsButton />}
           />
 
-          <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400 animate-fade-in">
-            {mode === "daily" ? (
-              <>Three attempts per day. Today: <span className="font-medium">{day}</span>. Attempts left: <span className="font-medium">{attemptsLeft}</span>{bestWpm != null && <> · Best: <span className="font-medium">{Math.round(bestWpm)} WPM</span></>}.</>
-            ) : (
-              <>Practice is unlimited. Your score won't affect daily attempts.</>
-            )}
-          </p>
+<p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400 animate-fade-in">
+  {mode === "daily" ? (
+    <>
+      Attempts today:{" "}
+      <span className={`font-medium ${attemptsLeft === 0 ? "text-red-400" : ""}`}>
+        {3 - attemptsLeft} / 3
+      </span>
+      {bestWpm != null && (
+        <>
+          {" "}• Best:{" "}
+          <span className="font-medium">
+            {Math.round(bestWpm)} WPM
+          </span>
+        </>
+      )}
+    </>
+  ) : (
+    <>Practice mode • Unlimited attempts</>
+  )}
+</p>
 
           {showAdmin ? (
             <AdminDashboard />
