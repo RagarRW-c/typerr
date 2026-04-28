@@ -63,7 +63,7 @@ export function ResponsiveHeader({
     return (
       <header className="flex items-center justify-between flex-wrap gap-2 animate-fade-in">
         <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
-          typrr-like <span className="text-zinc-500">demo</span>
+          Typrr <span className="text-zinc-500">platform</span>
         </h1>
         <div className="flex gap-2 flex-wrap items-center">
           {/* Theme Selector */}
@@ -172,7 +172,7 @@ export function ResponsiveHeader({
     <>
       <header className="flex items-center justify-between gap-2 animate-fade-in">
         <h1 className="text-xl font-semibold tracking-tight">
-          typrr-like <span className="text-zinc-500">demo</span>
+          Typrr <span className="text-zinc-500">platform</span>
         </h1>
         
         <div className="flex items-center gap-2">

@@ -4,7 +4,7 @@ export function Footer() {
       <div className="max-w-3xl mx-auto px-4">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="text-sm text-zinc-600 dark:text-zinc-400">
-            © {new Date().getFullYear()} typrr-like. Made with ❤️
+            © {new Date().getFullYear()} typrr. Made with ❤️
           </div>
           
           <div className="flex gap-6 text-sm">
