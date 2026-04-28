@@ -75,7 +75,7 @@ jobs:
             --cluster "$ECS_CLUSTER" \
             --launch-type FARGATE \
             --task-definition typrr-backend \
-            --network-configuration "awsvpcConfiguration={subnets=[subnet-04e6f4418cd7908e7,subnet-0790b88c6f7308e2c],securityGroups=[sg-0254308430abf1e2e],assignPublicIp=ENABLED}" \
+            --network-configuration "awsvpcConfiguration={subnets=[subnet-04e6f4418cd7908e7,subnet-0790b88c6f7308e2c],securityGroups=[sg-0956a7a05f8e791c8],assignPublicIp=ENABLED}" \
             --overrides '{"containerOverrides":[{"name":"backend","command":["sh","-c","npx prisma migrate deploy"]}]}'
 
       # =========================

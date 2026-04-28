@@ -1,0 +1,189 @@
+{
+    "Subnets": [
+        {
+            "AvailabilityZone": "eu-central-1b",
+            "AvailabilityZoneId": "euc1-az3",
+            "AvailableIpAddressCount": 249,
+            "CidrBlock": "10.0.1.0/24",
+            "DefaultForAz": false,
+            "MapPublicIpOnLaunch": true,
+            "MapCustomerOwnedIpOnLaunch": false,
+            "State": "available",
+            "SubnetId": "subnet-0790b88c6f7308e2c",
+            "VpcId": "vpc-086df7905ec2c1fd9",
+            "OwnerId": "613136968754",
+            "AssignIpv6AddressOnCreation": false,
+            "Ipv6CidrBlockAssociationSet": [],
+            "Tags": [
+                {
+                    "Key": "Name",
+                    "Value": "typrr-public-2"
+                }
+            ],
+            "SubnetArn": "arn:aws:ec2:eu-central-1:613136968754:subnet/subnet-0790b88c6f7308e2c",
+            "EnableDns64": false,
+            "Ipv6Native": false,
+            "PrivateDnsNameOptionsOnLaunch": {
+                "HostnameType": "ip-name",
+                "EnableResourceNameDnsARecord": false,
+                "EnableResourceNameDnsAAAARecord": false
+            }
+        },
+        {
+            "AvailabilityZone": "eu-central-1a",
+            "AvailabilityZoneId": "euc1-az2",
+            "AvailableIpAddressCount": 4091,
+            "CidrBlock": "172.31.16.0/20",
+            "DefaultForAz": true,
+            "MapPublicIpOnLaunch": true,
+            "MapCustomerOwnedIpOnLaunch": false,
+            "State": "available",
+            "SubnetId": "subnet-003f749d786fd78a3",
+            "VpcId": "vpc-07368024f06ed087f",
+            "OwnerId": "613136968754",
+            "AssignIpv6AddressOnCreation": false,
+            "Ipv6CidrBlockAssociationSet": [],
+            "SubnetArn": "arn:aws:ec2:eu-central-1:613136968754:subnet/subnet-003f749d786fd78a3",
+            "EnableDns64": false,
+            "Ipv6Native": false,
+            "PrivateDnsNameOptionsOnLaunch": {
+                "HostnameType": "ip-name",
+                "EnableResourceNameDnsARecord": false,
+                "EnableResourceNameDnsAAAARecord": false
+            }
+        },
+        {
+            "AvailabilityZone": "eu-central-1c",
+            "AvailabilityZoneId": "euc1-az1",
+            "AvailableIpAddressCount": 4091,
+            "CidrBlock": "172.31.0.0/20",
+            "DefaultForAz": true,
+            "MapPublicIpOnLaunch": true,
+            "MapCustomerOwnedIpOnLaunch": false,
+            "State": "available",
+            "SubnetId": "subnet-098d761bb523bd9b7",
+            "VpcId": "vpc-07368024f06ed087f",
+            "OwnerId": "613136968754",
+            "AssignIpv6AddressOnCreation": false,
+            "Ipv6CidrBlockAssociationSet": [],
+            "SubnetArn": "arn:aws:ec2:eu-central-1:613136968754:subnet/subnet-098d761bb523bd9b7",
+            "EnableDns64": false,
+            "Ipv6Native": false,
+            "PrivateDnsNameOptionsOnLaunch": {
+                "HostnameType": "ip-name",
+                "EnableResourceNameDnsARecord": false,
+                "EnableResourceNameDnsAAAARecord": false
+            }
+        },
+        {
+            "AvailabilityZone": "eu-central-1a",
+            "AvailabilityZoneId": "euc1-az2",
+            "AvailableIpAddressCount": 250,
+            "CidrBlock": "10.0.10.0/24",
+            "DefaultForAz": false,
+            "MapPublicIpOnLaunch": false,
+            "MapCustomerOwnedIpOnLaunch": false,
+            "State": "available",
+            "SubnetId": "subnet-07ddc17a7cc32de1c",
+            "VpcId": "vpc-086df7905ec2c1fd9",
+            "OwnerId": "613136968754",
+            "AssignIpv6AddressOnCreation": false,
+            "Ipv6CidrBlockAssociationSet": [],
+            "Tags": [
+                {
+                    "Key": "Name",
+                    "Value": "typrr-private-1"
+                }
+            ],
+            "SubnetArn": "arn:aws:ec2:eu-central-1:613136968754:subnet/subnet-07ddc17a7cc32de1c",
+            "EnableDns64": false,
+            "Ipv6Native": false,
+            "PrivateDnsNameOptionsOnLaunch": {
+                "HostnameType": "ip-name",
+                "EnableResourceNameDnsARecord": false,
+                "EnableResourceNameDnsAAAARecord": false
+            }
+        },
+        {
+            "AvailabilityZone": "eu-central-1a",
+            "AvailabilityZoneId": "euc1-az2",
+            "AvailableIpAddressCount": 250,
+            "CidrBlock": "10.0.0.0/24",
+            "DefaultForAz": false,
+            "MapPublicIpOnLaunch": true,
+            "MapCustomerOwnedIpOnLaunch": false,
+            "State": "available",
+            "SubnetId": "subnet-04e6f4418cd7908e7",
+            "VpcId": "vpc-086df7905ec2c1fd9",
+            "OwnerId": "613136968754",
+            "AssignIpv6AddressOnCreation": false,
+            "Ipv6CidrBlockAssociationSet": [],
+            "Tags": [
+                {
+                    "Key": "Name",
+                    "Value": "typrr-public-1"
+                }
+            ],
+            "SubnetArn": "arn:aws:ec2:eu-central-1:613136968754:subnet/subnet-04e6f4418cd7908e7",
+            "EnableDns64": false,
+            "Ipv6Native": false,
+            "PrivateDnsNameOptionsOnLaunch": {
+                "HostnameType": "ip-name",
+                "EnableResourceNameDnsARecord": false,
+                "EnableResourceNameDnsAAAARecord": false
+            }
+        },
+        {
+            "AvailabilityZone": "eu-central-1b",
+            "AvailabilityZoneId": "euc1-az3",
+            "AvailableIpAddressCount": 251,
+            "CidrBlock": "10.0.11.0/24",
+            "DefaultForAz": false,
+            "MapPublicIpOnLaunch": false,
+            "MapCustomerOwnedIpOnLaunch": false,
+            "State": "available",
+            "SubnetId": "subnet-079aa7d2ae3f9e02a",
+            "VpcId": "vpc-086df7905ec2c1fd9",
+            "OwnerId": "613136968754",
+            "AssignIpv6AddressOnCreation": false,
+            "Ipv6CidrBlockAssociationSet": [],
+            "Tags": [
+                {
+                    "Key": "Name",
+                    "Value": "typrr-private-2"
+                }
+            ],
+            "SubnetArn": "arn:aws:ec2:eu-central-1:613136968754:subnet/subnet-079aa7d2ae3f9e02a",
+            "EnableDns64": false,
+            "Ipv6Native": false,
+            "PrivateDnsNameOptionsOnLaunch": {
+                "HostnameType": "ip-name",
+                "EnableResourceNameDnsARecord": false,
+                "EnableResourceNameDnsAAAARecord": false
+            }
+        },
+        {
+            "AvailabilityZone": "eu-central-1b",
+            "AvailabilityZoneId": "euc1-az3",
+            "AvailableIpAddressCount": 4091,
+            "CidrBlock": "172.31.32.0/20",
+            "DefaultForAz": true,
+            "MapPublicIpOnLaunch": true,
+            "MapCustomerOwnedIpOnLaunch": false,
+            "State": "available",
+            "SubnetId": "subnet-0388faeff0789204a",
+            "VpcId": "vpc-07368024f06ed087f",
+            "OwnerId": "613136968754",
+            "AssignIpv6AddressOnCreation": false,
+            "Ipv6CidrBlockAssociationSet": [],
+            "SubnetArn": "arn:aws:ec2:eu-central-1:613136968754:subnet/subnet-0388faeff0789204a",
+            "EnableDns64": false,
+            "Ipv6Native": false,
+            "PrivateDnsNameOptionsOnLaunch": {
+                "HostnameType": "ip-name",
+                "EnableResourceNameDnsARecord": false,
+                "EnableResourceNameDnsAAAARecord": false
+            }
+        }
+    ]
+}
